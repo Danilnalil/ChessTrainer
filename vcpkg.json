@@ -1,0 +1,8 @@
+{
+  "name": "my-chess-trainer",
+  "version": "0.1.0",
+  "dependencies": [
+    "sfml"
+  ],
+  "builtin-baseline": "9f8f0c7bfa1a8f393cd4da3f49c1163d7daa774f"
+}
