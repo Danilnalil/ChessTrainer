@@ -33,7 +33,7 @@ void Board::init() {
    blackKingCol = 4;
 }
 
-void Board::handleClick(int row, int col, bool& orderMoves) {
+void Board::handleClick(int row, int col) {
 
    // Игнорируем клик вне доски
    if (row < 0 || row >= 8 || col < 0 || col >= 8) {
@@ -427,8 +427,7 @@ void Board::makeMove(int selectedRow, int selectedCol, int row, int col, char& s
    selectedRow = -1;
    selectedCol = -1;
    selectedPiece = '\0';
-   if (getOrderMoves()) { setOrderMoves(false); }
-   else { setOrderMoves(true); }
+   orderMoves = !orderMoves;
 
    // 3. Обновляем координаты короля, если это король
    char upper = std::toupper(static_cast<unsigned char>(piece));

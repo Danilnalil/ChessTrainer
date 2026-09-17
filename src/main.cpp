@@ -21,10 +21,10 @@ int main() {
    //------------------------------------------- Textures & Sprites
 
    sf::Texture texture;
-   if (!texture.loadFromFile("C:/Projects/MyChessTrainer/assets/chess_fg.png"))
+   if (!texture.loadFromFile("assets/chess_fg.png"))
    {
-      std::cout << "Exit in if (!texture.loadFromFile";
-      return -1;
+      std::cerr << "Exit in if (!texture.loadFromFile"; // cerr - выделение вывод ошибки
+      return 1;
    }
 
    std::vector<sf::Sprite> sprites = splitTextureIntoSprite(texture, 6, 2, cellSizePixel, true);
@@ -55,8 +55,7 @@ int main() {
             int col = (mousePos.x - offSetX) / cellSizePixel;        // вычисл€ем клетку, в которой сейчас мышь
             int row = (mousePos.y - offSetY) / cellSizePixel;
 
-            bool order = chessBoard.getOrderMoves();
-            chessBoard.handleClick(row, col, order); // обработка хода
+            chessBoard.handleClick(row, col); // обработка хода
          }
       }
 

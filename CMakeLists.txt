@@ -17,6 +17,12 @@ find_package(SFML CONFIG REQUIRED COMPONENTS Graphics Window System)
 set(SOURCES src/main.cpp src/Board.cpp src/Functions.cpp)
 set(HEADERS include/Functions.h include/Board.h)
 add_executable(MyChessTrainer ${SOURCES} ${HEADERS})
+# При запуске из Visual Studio рабочая папка =
+# папка, в которой находится MyChessTrainer.exe
+set_target_properties(MyChessTrainer PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:MyChessTrainer>"
+)
+
 target_include_directories(MyChessTrainer PRIVATE include)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Source Files" FILES ${SOURCES} ${HEADERS})
 # Линкуем библиотеки SFML к нашему проекту
@@ -25,7 +31,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     SFML::Window
     SFML::System
 )
-
+# Копируем ресурсы после сборки программы
+add_custom_command(
+    TARGET MyChessTrainer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/assets"
+        "$<TARGET_FILE_DIR:MyChessTrainer>/assets"
+)
 # Указываем, где искать свои заголовки (папка include)
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 

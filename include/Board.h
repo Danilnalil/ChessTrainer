@@ -33,7 +33,7 @@ public:
 
    Board();       // конструктор вызывает init()
    void init();   // начальная расстановка 
-   void handleClick(int row, int col, bool& orderMoves);                // обработка клика (выбор/перемещение)
+   void handleClick(int row, int col);                // обработка клика (выбор/перемещение)
    std::vector<Move> generatePseudoLegalMoves(int row, int col) const;  // создаёт псевдолегальные ходы
    std::vector<Board::Move> generateLegalMoves(int row, int col) const; // делает предварительный ход, чтобы отсеить нелегальные
    bool isLegalMove(const std::vector<Move>& legalMoves, int selectedRow, int selectedCol, int toRow, int toCol) const; // проверяет наличие легального хода
