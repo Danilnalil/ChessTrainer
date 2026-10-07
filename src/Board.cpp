@@ -1,5 +1,4 @@
 #include "Board.h"
-#include <algorithm>
 
 Board::Board() : pieceSelected(false), selectedRow(-1), selectedCol(-1), selectedPiece('\0') {
    init();
@@ -32,6 +31,15 @@ void Board::init() {
    whiteKingCol = 4;
    blackKingRow = 0;
    blackKingCol = 4;
+   // новая партия начинается с белых
+   whiteToMove = true;
+   // сброс для рокировок
+   whiteCanCastleKingSide = true;
+   whiteCanCastleQueenSide = true;
+   blackCanCastleKingSide = true;
+   blackCanCastleQueenSide = true;
+   // очистка допустимых ходов от прошлой игры
+   legalMoves.clear();
 }
 
 void Board::handleClick(int row, int col) {
@@ -68,10 +76,11 @@ void Board::handleClick(int row, int col) {
          selectedPiece = '\0';
       }
       else {
+         const Move* move = findLegalMove(legalMoves, selectedRow, selectedCol, row, col);
          // Перемещение фигуры
-         if (isLegalMove(legalMoves, selectedRow, selectedCol, row, col)) 
+         if (move != nullptr) 
          {
-            makeMove(selectedRow, selectedCol, row, col, selectedPiece);
+            makeMove(*move);
          }
          else 
          {
@@ -264,6 +273,23 @@ std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
             moves.push_back({ col, row, toCol, toRow });
          }
       }
+      // рокировка
+      int homeRow = isWhite ? 7 : 0;
+      if (row == homeRow && col == 4)
+      {
+         if (canCastleKingSide(board, isWhite))
+         {
+            moves.push_back({ col, row, 6, row, MoveType::CastleKingSide });
+         }
+         if (canCastleQueenSide(board, isWhite))
+         {
+            moves.push_back({ col, row, 2, row, MoveType::CastleQueenSide });
+         }
+      }
+      
+         
+      
+
       break;
    }
 
@@ -276,34 +302,46 @@ std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
 
 std::vector<Board::Move> Board::generateLegalMoves(int row, int col) const
 {
+   // Сначала создание всех псевдолегальных ходов фигуры
    auto pseudo = generatePseudoLegalMoves(row, col); 
+
    std::vector<Move> legal;
    legal.reserve(pseudo.size());
+
+   // Если клетка пустая, ходов быть не может
+   if (board[row][col] == '.')
+   {
+      return legal;
+   }
+   // определяем цвет фигуры, для которой генерируем ходы
+   bool isWhite = std::isupper(static_cast<unsigned char>(board[row][col]));
+
    for (const Move& m : pseudo) {
-      if (isMoveLegal(m, this->whiteToMove)) {
+      if (isMoveLegal(m, isWhite)) {
          legal.push_back(m);
       }
    }
    return legal;
 }
 
-bool Board::isLegalMove(const std::vector<Move>& legalMoves, int selectedRow, int selectedCol, int toRow, int toCol) const
+const Board::Move* Board::findLegalMove(const std::vector<Move>& legalMoves, int selectedRow, int selectedCol, int toRow, int toCol) const
 {
    for (const Move& move : legalMoves) {
       if (move.fromRow == selectedRow && move.fromCol == selectedCol &&
-         move.toRow == toRow && move.toCol == toCol)
+          move.toRow == toRow && move.toCol == toCol)
       {
-         return true;
+         // возвращаем адрес выбранного хода
+         return &move;
       }
    }
-   return false;
+   // если ничего нет, то nullptr
+   return nullptr;
 }
 
 bool Board::isMoveLegal(const Move& move, bool isWhite) const
 {
    // 1. Копирование доски
-   std::array<std::array<char, 8>, 8> tempBoard;
-   std::copy(&board[0][0], &board[0][0] + 64, &tempBoard[0][0]);
+   auto tempBoard = board;
 
    // 2. Копир. координаты королей
    int tempWhiteKingRow = whiteKingRow;
@@ -315,6 +353,19 @@ bool Board::isMoveLegal(const Move& move, bool isWhite) const
    char piece = tempBoard[move.fromRow][move.fromCol];
    tempBoard[move.toRow][move.toCol] = piece;
    tempBoard[move.fromRow][move.fromCol] = '.';
+   if (move.type == MoveType::CastleKingSide)
+   {
+      char rook = tempBoard[move.fromRow][7];
+      tempBoard[move.fromRow][7] = '.';
+      tempBoard[move.fromRow][5] = rook;
+   }
+   // длинная
+   if (move.type == MoveType::CastleQueenSide)
+   {
+      char rook = tempBoard[move.fromRow][0];
+      tempBoard[move.fromRow][0] = '.';
+      tempBoard[move.fromRow][3] = rook;
+   }
 
    // Если ходит король — обновляю его координаты
    char upper = std::toupper(piece);
@@ -437,27 +488,86 @@ bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, in
    return false;
 }
 
-void Board::makeMove(int selectedRow, int selectedCol, int row, int col, char& selectedPiece) 
+void Board::makeMove(const Move& move) 
 {
-   char piece = board[selectedRow][selectedCol];
-   board[selectedRow][selectedCol] = '.';
-   board[row][col] = selectedPiece;
+   // запоминаем фигуру, которую двигаем
+   char piece = board[move.fromRow][move.fromCol];
+   
+   // запоминаем взятую фигуру
+   char capturedPiece = board[move.toRow][move.toCol];
+
+   // ===========================
+   // ОБНОВЛЕНИЕ ПРАВ НА РОКИРОВКУ
+   // ===========================
+   // Если переместили короля
+   if (piece == 'K')
+   {
+      whiteCanCastleKingSide = false;
+      whiteCanCastleQueenSide = false;
+   }
+   if (piece == 'k')
+   {
+      blackCanCastleKingSide = false;
+      blackCanCastleQueenSide = false;
+   }
+   // Если ходит белая ладья с а1 -> нельзя длинную рокировку
+   if (piece == 'R' && move.fromRow == 7 && move.fromCol == 0) { whiteCanCastleQueenSide = false; }
+   // Если ходит белая ладья с h1 -> нельзя короткую рокировку
+   if (piece == 'R' && move.fromRow == 7 && move.fromCol == 7) { whiteCanCastleKingSide = false; }
+   // аналогично для чёрных
+   // Если ходит чёрная ладья с а8 -> нельзя длинную рокировку
+   if (piece == 'r' && move.fromRow == 0 && move.fromCol == 0) { blackCanCastleQueenSide = false; }
+   // Если ходит белая ладья с h8 -> нельзя короткую рокировку
+   if (piece == 'r' && move.fromRow == 0 && move.fromCol == 7) { blackCanCastleKingSide = false; }
+   
+   // если стартовые ладьи взяты врагом
+   if (capturedPiece == 'R' && move.toRow == 7 && move.toCol == 0) { whiteCanCastleQueenSide = false; }
+   if (capturedPiece == 'R' && move.toRow == 7 && move.toCol == 7) { whiteCanCastleKingSide = false; }
+   if (capturedPiece == 'r' && move.toRow == 0 && move.toCol == 0) { blackCanCastleQueenSide = false; }
+   if (capturedPiece == 'r' && move.toRow == 0 && move.toCol == 7) { blackCanCastleKingSide = false; }
+   //=====================================
+   
+   // перемещаем фигуру
+   board[move.fromRow][move.fromCol] = '.';
+   board[move.toRow][move.toCol] = selectedPiece;
+
+   //=====================================
+   // ПЕРЕМЕЩЕНИЕ ЛАДЬИ ПРИ РОКИРОВКЕ
+   // ====================================
+   // короткая
+   if (move.type == MoveType::CastleKingSide)
+   {
+      char rook = board[move.fromRow][7];
+      board[move.fromRow][7] = '.';
+      board[move.fromRow][5] = rook;
+   }
+   // длинная
+   if (move.type == MoveType::CastleQueenSide)
+   {
+      char rook = board[move.fromRow][0];
+      board[move.fromRow][0] = '.';
+      board[move.fromRow][3] = rook;
+   }
+
+   // ====================================
+   // После хода фигура больше не выбрана
    pieceSelected = false;
    selectedRow = -1;
    selectedCol = -1;
    selectedPiece = '\0';
+   // передача хода другому цвету
    whiteToMove = !whiteToMove;
 
    // 1. Обновляем координаты короля, если это король
    char upper = std::toupper(static_cast<unsigned char>(piece));
    if (upper == 'K') {
       if (std::isupper(static_cast<unsigned char>(piece))) {
-         whiteKingRow = row;
-         whiteKingCol = col;
+         whiteKingRow = move.toRow;
+         whiteKingCol = move.toCol;
       }
       else {
-         blackKingRow = row;
-         blackKingCol = col;
+         blackKingRow = move.toRow;
+         blackKingCol = move.toCol;
       }
    }
 
@@ -491,7 +601,7 @@ void Board::setOrderMoves(bool order)
    whiteToMove = order;
 }
 
-bool Board::canCastleKingSide(const std::array<std::array<char, 8>, 8>& board, bool white)
+bool Board::canCastleKingSide(const std::array<std::array<char, 8>, 8>& board, bool white) const
 {
    // У белых король находится на 7-й строке массива,
    // у чёрных — на 0-й.
@@ -559,6 +669,82 @@ bool Board::canCastleKingSide(const std::array<std::array<char, 8>, 8>& board, b
    // Конечная клетка — g1/g8.
 
    if (isSquareAttacked(board, row, 6, !white)) { return false; }
+
+
+   // Все условия выполнены.
+   return true;
+}
+
+bool Board::canCastleQueenSide(const std::array<std::array<char, 8>, 8>& board, bool white) const
+{
+   // У белых король находится на 7-й строке массива,
+   // у чёрных — на 0-й.
+   int row = white ? 7 : 0;
+
+   // Символы короля и ладьи нужного цвета.
+   char king = white ? 'K' : 'k';
+   char rook = white ? 'R' : 'r';
+   // =========================================
+   // 1. ЕСТЬ ЛИ ЕЩЁ ПРАВО НА РОКИРОВКУ?
+
+   if (white) {
+      if (!whiteCanCastleKingSide) {
+         return false;
+      }
+   }
+   else {
+      if (!blackCanCastleKingSide) {
+         return false;
+      }
+   }
+   // =========================================
+   // 2. КОРОЛЬ ДОЛЖЕН СТОЯТЬ НА e1 / e8
+   //
+   if (board[row][4] != king) { return false; }
+   // =========================================
+   // 3. ЛАДЬЯ ДОЛЖНА СТОЯТЬ НА h1 / h8
+   if (board[row][0] != rook) { return false; }
+   // =========================================
+   // 4. МЕЖДУ КОРОЛЁМ И ЛАДЬЁЙ ДОЛЖНО БЫТЬ ПУСТО
+   // e -> король
+   // c1 -> должно быть пусто
+   // d1 -> должно быть пусто
+   // b1 -> должно быть пусто
+   // a -> ладья
+   // =========================================
+
+   if (board[row][1] != '.' ||
+      board[row][2] != '.' ||
+      board[row][3] != '.')
+   {
+      return false;
+   }
+   // =========================================
+   // 5. КОРОЛЬ НЕ МОЖЕТ РОКИРОВАТЬСЯ ИЗ-ПОД ШАХА
+   /*
+   !white означает :
+
+    если white == true,
+    проверяем атаки ЧЁРНЫХ;
+
+    если white == false,
+    проверяем атаки БЕЛЫХ.
+   */
+   // =========================================
+
+   if (isSquareAttacked(board, row, 4, !white)) { return false; }
+   // =========================================
+   // 6. КОРОЛЬ НЕ МОЖЕТ ПРОХОДИТЬ ЧЕРЕЗ БИТОЕ ПОЛЕ
+   // При O-O-O король проходит через d1/d8.
+   if (isSquareAttacked(board, row, 3, !white)) { return false; }
+   
+
+   // =========================================
+   // 7. КОРОЛЬ НЕ МОЖЕТ ПОПАСТЬ ПОД ШАХ
+   //
+   // Конечная клетка — a1/a8.
+
+   if (isSquareAttacked(board, row, 2, !white)) { return false; }
 
 
    // Все условия выполнены.

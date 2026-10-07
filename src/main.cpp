@@ -15,9 +15,6 @@ int main() {
 
    //------------------------------------------- value
 
-   int highlightSelectedCol = -1; // подсвеченная клетка
-   int highlightSelectedRow = -1;
-
    //------------------------------------------- Textures & Sprites
 
    sf::Texture texture;
@@ -52,10 +49,15 @@ int main() {
                eventMouse && eventMouse->button == sf::Mouse::Button::Left()) 
          {
             sf::Vector2i mousePos = sf::Mouse::getPosition(window);  // получаю координаты мыши при нажатии (int)
-            int col = (mousePos.x - offSetX) / cellSizePixel;        // вычисляем клетку, в которой сейчас мышь
-            int row = (mousePos.y - offSetY) / cellSizePixel;
+            // проверка попадания в доску
+            if (mousePos.x >= offSetX && mousePos.x < offSetX + boardSizePixel && mousePos.y >= offSetY && mousePos.y < offSetY + boardSizePixel)
+            {
+               int col = (mousePos.x - offSetX) / cellSizePixel;        // вычисляем клетку, в которой сейчас мышь
+               int row = (mousePos.y - offSetY) / cellSizePixel;
 
-            chessBoard.handleClick(row, col); // обработка хода
+               chessBoard.handleClick(row, col); // обработка хода
+            }
+            
          }
       }
 

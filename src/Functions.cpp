@@ -80,44 +80,6 @@ void drawFigures(sf::RenderWindow& window, const std::array<std::array<char, 8>,
    }
 }
 
-void movePiece(std::array<std::array<char, 8>, 8>& board, int row, int col, bool& isPieceSelected, int& selectedRow, int& selectedCol)
-{
-   static char pieceSymbol = '\0';
-
-   // игнорируем некорректный клик
-   if (row < 0 || row >= static_cast<int>(board.size()) ||
-      col < 0 || col >= static_cast<int>(board[0].size())) 
-   {
-      return; 
-   }
-   if (!isPieceSelected) {
-      // ≈сли фигура не выбрана, пытаемс€ выбрать
-      if (board[row][col] != '.') // на клетке есть фигура
-      { 
-         isPieceSelected = true;
-         selectedRow = row;
-         selectedCol = col;
-         pieceSymbol = board[row][col];
-      }
-      // ≈сли клетка пуста Ц ничего не делать
-   }
-   else 
-   {
-      // ‘игура уже выбрана
-      if (row == selectedRow && col == selectedCol)  //  лик по той же клетке Ц отмен€ем выбор
-      {  
-         isPieceSelected = false;
-      }
-      else 
-      {
-         //  лик по другой клетке Ц перемещаем фигуру
-         board[selectedRow][selectedCol] = '.';    // освобождаем старую клетку
-         board[row][col] = pieceSymbol;            // ставим фигуру на новую
-         isPieceSelected = false;                  // —брос состо€ние выбора
-      }
-   }
-}
-
 void drawHighlightRect(sf::RenderWindow& window, const Board& board, const int cellSize, const int offSetX,
    const int offSetY)
 {

@@ -38,8 +38,6 @@ add_custom_command(
         "${CMAKE_SOURCE_DIR}/assets"
         "$<TARGET_FILE_DIR:MyChessTrainer>/assets"
 )
-# Указываем, где искать свои заголовки (папка include)
-target_include_directories(${PROJECT_NAME} PRIVATE include)
 
 # ======================================================
 # Для Windows: автоматически копируем DLL-ки SFML в папку с .exe

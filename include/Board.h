@@ -11,12 +11,25 @@ class Board
 {
 
 public:
+   // тип шахматного хода
+   enum class MoveType
+   {
+      Normal, 
+      CastleKingSide,
+      CastleQueenSide,
+      EnPassant,
+      Promotion
+   };
    struct Move
    {
       int fromCol;
       int fromRow;
       int toCol;
       int toRow;
+      // по умолчанию ход - обычный
+      MoveType type = MoveType::Normal;
+      // используем для превращения пешки ('\0' - нет превращения)
+      char promotionPiece = '\0';
    };
    // конструктор вызывает init()
    Board();       
@@ -28,10 +41,12 @@ public:
    std::vector<Move> generatePseudoLegalMoves(int row, int col) const;
    // делает предварительный ход, чтобы отсеить нелегальные
    std::vector<Board::Move> generateLegalMoves(int row, int col) const;
-   bool isLegalMove(const std::vector<Move>& legalMoves, int selectedRow, int selectedCol, int toRow, int toCol) const; // проверяет наличие легального хода
+   // функция ищет конкретный легальный ход
+   // если найден - указатель, если нет - nullptr
+   const Move* findLegalMove (const std::vector<Move>& legalMoves, int selectedRow, int selectedCol, int toRow, int toCol) const;
    bool isMoveLegal(const Move& move, bool isWhite) const;
    bool isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, int row, int col, bool byWhite) const;
-   void makeMove(int selectedRow, int selectedCol, int row, int col, char& selectedPiece);
+   void makeMove(const Move& move);
 
    // Геттеры 
    const std::array<std::array<char, 8>, 8>& getBoard() const;
@@ -78,12 +93,13 @@ private:
    // Проверяет короткую рокировку.
    // white == true  -> проверяем белых.
    // white == false -> проверяем чёрных.
-   bool canCastleKingSide(const std::array<std::array<char, 8>, 8>& board, bool white);
+   bool canCastleKingSide(const std::array<std::array<char, 8>, 8>& board, bool white) const;
 
    // Проверяет длинную рокировку.
    // white == true  -> проверяем белых.
    // white == false -> проверяем чёрных.
-   bool canCastleQueenSide(bool white); // пока на реализации
+   bool canCastleQueenSide(const std::array<std::array<char, 8>, 8>& board, bool white) const;
+   
 
 };
 

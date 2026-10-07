@@ -31,8 +31,6 @@ void drawFigures
    float cellSize // размер клетки
 );
 
-/*Функция перемещения фигуры*/
-void movePiece(std::array<std::array<char, 8>, 8>& board, int row, int col, bool& isPieceSelected, int& selectedRow, int& selectedCol);
 /*Подсветка клетки*/
 void drawHighlightRect(sf::RenderWindow& window, const Board& board, const int cellSize ,const int offSetX, const int offSetY);
 
