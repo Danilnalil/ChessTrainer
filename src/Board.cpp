@@ -1,4 +1,5 @@
 #include "Board.h"
+#include <algorithm>
 
 Board::Board() : pieceSelected(false), selectedRow(-1), selectedCol(-1), selectedPiece('\0') {
    init();
@@ -40,13 +41,15 @@ void Board::handleClick(int row, int col) {
       return;
    }
    
-   if (!pieceSelected) {
+   if (!pieceSelected) 
+   {
       // Попытка выбрать фигуру
 
-      if (board[row][col] != '.') {
+      if (board[row][col] != '.') 
+      {
          char piece = board[row][col];
          bool flag = std::isupper(static_cast<unsigned char>(piece));
-         if ( flag != orderMoves) { return; }
+         if ( flag != whiteToMove) { return; }
          legalMoves = generateLegalMoves(row, col);
          pieceSelected = true;
          selectedRow = row;
@@ -56,7 +59,8 @@ void Board::handleClick(int row, int col) {
    }
    else {
       // Фигура уже выбрана
-      if (row == selectedRow && col == selectedCol) {
+      if (row == selectedRow && col == selectedCol) 
+      {
          // Повторный клик по той же клетке – отмена выбора
          pieceSelected = false;
          selectedRow = -1;
@@ -69,11 +73,26 @@ void Board::handleClick(int row, int col) {
          {
             makeMove(selectedRow, selectedCol, row, col, selectedPiece);
          }
-         else {
-            pieceSelected = false;
-            selectedRow = -1;
-            selectedCol = -1;
-            selectedPiece = '\0';
+         else 
+         {
+            char target = board[row][col];
+            // Если своя фигура, переключаемся на неё
+            if (target != '.' && std::isupper(static_cast<unsigned char>(target)) == whiteToMove)
+            {
+               legalMoves = generateLegalMoves(row, col);
+               pieceSelected = true;
+               selectedRow = row;
+               selectedCol = col;
+               selectedPiece = target;
+            }
+            else 
+            {
+               pieceSelected = false;
+               selectedRow = -1;
+               selectedCol = -1;
+               selectedPiece = '\0';
+            }
+            
          }
          
       }
@@ -261,7 +280,7 @@ std::vector<Board::Move> Board::generateLegalMoves(int row, int col) const
    std::vector<Move> legal;
    legal.reserve(pseudo.size());
    for (const Move& m : pseudo) {
-      if (isMoveLegal(m, this->orderMoves)) {
+      if (isMoveLegal(m, this->whiteToMove)) {
          legal.push_back(m);
       }
    }
@@ -283,7 +302,7 @@ bool Board::isLegalMove(const std::vector<Move>& legalMoves, int selectedRow, in
 bool Board::isMoveLegal(const Move& move, bool isWhite) const
 {
    // 1. Копирование доски
-   char tempBoard[8][8];
+   std::array<std::array<char, 8>, 8> tempBoard;
    std::copy(&board[0][0], &board[0][0] + 64, &tempBoard[0][0]);
 
    // 2. Копир. координаты королей
@@ -326,7 +345,7 @@ bool Board::isMoveLegal(const Move& move, bool isWhite) const
    return !attacked;
 }
 
-bool Board::isSquareAttacked(const char board[8][8], int row, int col, bool byWhite) const
+bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, int row, int col, bool byWhite) const
 {
    // Вспомогательная лямбда для проверки, что клетка содержит фигуру нужного цвета
    auto isEnemy = [&](int r, int c) -> bool {
@@ -427,9 +446,9 @@ void Board::makeMove(int selectedRow, int selectedCol, int row, int col, char& s
    selectedRow = -1;
    selectedCol = -1;
    selectedPiece = '\0';
-   orderMoves = !orderMoves;
+   whiteToMove = !whiteToMove;
 
-   // 3. Обновляем координаты короля, если это король
+   // 1. Обновляем координаты короля, если это король
    char upper = std::toupper(static_cast<unsigned char>(piece));
    if (upper == 'K') {
       if (std::isupper(static_cast<unsigned char>(piece))) {
@@ -442,7 +461,7 @@ void Board::makeMove(int selectedRow, int selectedCol, int row, int col, char& s
       }
    }
 
-   // 4. (Позже) обработка рокировки, en passant, превращения пешки
+   // 2. (Позже) обработка рокировки, взятие на проходе, превращения пешки
 }
 
 const std::array<std::array<char, 8>, 8>& Board::getBoard() const {
@@ -464,10 +483,84 @@ int Board::getSelectedCol() const
 
 bool Board::getOrderMoves() const
 {
-   return orderMoves;
+   return whiteToMove;
 }
 
 void Board::setOrderMoves(bool order)
 {
-   orderMoves = order;
+   whiteToMove = order;
+}
+
+bool Board::canCastleKingSide(const std::array<std::array<char, 8>, 8>& board, bool white)
+{
+   // У белых король находится на 7-й строке массива,
+   // у чёрных — на 0-й.
+   int row = white ? 7 : 0;
+
+   // Символы короля и ладьи нужного цвета.
+   char king = white ? 'K' : 'k';
+   char rook = white ? 'R' : 'r';
+   // =========================================
+   // 1. ЕСТЬ ЛИ ЕЩЁ ПРАВО НА РОКИРОВКУ?
+   
+   if (white) {
+      if (!whiteCanCastleKingSide) {
+         return false;
+      }
+   }
+   else {
+      if (!blackCanCastleKingSide) {
+         return false;
+      }
+   }
+   // =========================================
+   // 2. КОРОЛЬ ДОЛЖЕН СТОЯТЬ НА e1 / e8
+   //
+   if (board[row][4] != king) { return false; }
+   // =========================================
+   // 3. ЛАДЬЯ ДОЛЖНА СТОЯТЬ НА h1 / h8
+   if (board[row][7] != rook) { return false; }
+   // =========================================
+   // 4. МЕЖДУ КОРОЛЁМ И ЛАДЬЁЙ ДОЛЖНО БЫТЬ ПУСТО
+   // e1 -> король
+   // f1 -> должно быть пусто
+   // g1 -> должно быть пусто
+   // h1 -> ладья
+   // =========================================
+
+   if (board[row][5] != '.' ||
+      board[row][6] != '.')
+   {
+      return false;
+   }
+   // =========================================
+   // 5. КОРОЛЬ НЕ МОЖЕТ РОКИРОВАТЬСЯ ИЗ-ПОД ШАХА
+   /* 
+   !white означает :
+   
+    если white == true,
+    проверяем атаки ЧЁРНЫХ;
+   
+    если white == false,
+    проверяем атаки БЕЛЫХ.
+   */
+   // =========================================
+
+   if (isSquareAttacked(board, row, 4, !white)) { return false; }
+   // =========================================
+   // 6. КОРОЛЬ НЕ МОЖЕТ ПРОХОДИТЬ ЧЕРЕЗ БИТОЕ ПОЛЕ
+   // При O-O король проходит через f1/f8.
+   if (isSquareAttacked(board, row, 5, !white)) { return false; }
+
+
+   // =========================================
+   // 7. КОРОЛЬ НЕ МОЖЕТ ПОПАСТЬ ПОД ШАХ
+   //
+   // Конечная клетка — g1/g8.
+
+   if (isSquareAttacked(board, row, 6, !white)) { return false; }
+
+
+   // Все условия выполнены.
+   return true;
 }

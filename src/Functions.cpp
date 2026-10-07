@@ -1,4 +1,5 @@
 #include "Functions.h"
+#include <algorithm>
 
 std::vector<sf::Sprite> splitTextureIntoSprite(const sf::Texture& texture,  int columns,  int rows, float cellSize, bool keepAspectRatio)
 {

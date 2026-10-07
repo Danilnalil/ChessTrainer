@@ -6,39 +6,31 @@
 #include <vector>
 #include <cctype>
 
+
 class Board
 {
-private:
-   struct Move // откуда ход и куда
+
+public:
+   struct Move
    {
       int fromCol;
       int fromRow;
       int toCol;
       int toRow;
    };
-   std::array<std::array<char, 8>, 8> board;
-   bool pieceSelected;
-   int selectedRow;
-   int selectedCol;
-   char selectedPiece;
-   std::vector<Move> legalMoves;
-   bool orderMoves = true; // true - ходят белые, иначе чёрные
-   short whiteKingRow{ 7 }; // позиции королей
-   short whiteKingCol{ 4 };
-   short blackKingRow{ 0 };
-   short blackKingCol{ 4 };
-
-
-public:
-
-   Board();       // конструктор вызывает init()
-   void init();   // начальная расстановка 
-   void handleClick(int row, int col);                // обработка клика (выбор/перемещение)
-   std::vector<Move> generatePseudoLegalMoves(int row, int col) const;  // создаёт псевдолегальные ходы
-   std::vector<Board::Move> generateLegalMoves(int row, int col) const; // делает предварительный ход, чтобы отсеить нелегальные
+   // конструктор вызывает init()
+   Board();       
+   // начальная расстановка 
+   void init();
+   // обработка клика (выбор/перемещение)
+   void handleClick(int row, int col);   
+   // создаёт псевдолегальные ходы
+   std::vector<Move> generatePseudoLegalMoves(int row, int col) const;
+   // делает предварительный ход, чтобы отсеить нелегальные
+   std::vector<Board::Move> generateLegalMoves(int row, int col) const;
    bool isLegalMove(const std::vector<Move>& legalMoves, int selectedRow, int selectedCol, int toRow, int toCol) const; // проверяет наличие легального хода
    bool isMoveLegal(const Move& move, bool isWhite) const;
-   bool isSquareAttacked(const char board[8][8], int row, int col, bool byWhite) const;
+   bool isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, int row, int col, bool byWhite) const;
    void makeMove(int selectedRow, int selectedCol, int row, int col, char& selectedPiece);
 
    // Геттеры 
@@ -50,6 +42,49 @@ public:
 
    // Сеттеры
    void setOrderMoves(bool order);
+
+private:
+   // откуда ход и куда
+
+   std::array<std::array<char, 8>, 8> board;
+   bool pieceSelected;
+   int selectedRow;
+   int selectedCol;
+   char selectedPiece;
+   std::vector<Move> legalMoves;
+   bool whiteToMove = true; // true - ходят белые, иначе чёрные
+   short whiteKingRow{ 7 }; // позиции королей
+   short whiteKingCol{ 4 };
+   short blackKingRow{ 0 };
+   short blackKingCol{ 4 };
+
+   //===========================================
+   // ПРАВА НА РОКИРОВКУ
+   //
+   // 
+   // Белые ещё имеют право на короткую рокировку O-O.
+   bool whiteCanCastleKingSide = true;
+
+   // Белые ещё имеют право на длинную рокировку O-O-O.
+   bool whiteCanCastleQueenSide = true;
+
+   // То же самое для чёрных.
+   bool blackCanCastleKingSide = true;
+   bool blackCanCastleQueenSide = true;
+   //=============================================
+   // ПРОВЕРКА ВОЗМОЖНОСТИ РОКИРОВКИ
+   // 
+
+   // Проверяет короткую рокировку.
+   // white == true  -> проверяем белых.
+   // white == false -> проверяем чёрных.
+   bool canCastleKingSide(const std::array<std::array<char, 8>, 8>& board, bool white);
+
+   // Проверяет длинную рокировку.
+   // white == true  -> проверяем белых.
+   // white == false -> проверяем чёрных.
+   bool canCastleQueenSide(bool white); // пока на реализации
+
 };
 
 #endif // BOARD_H
