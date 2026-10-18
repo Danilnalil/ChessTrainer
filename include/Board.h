@@ -5,21 +5,57 @@
 #include <array>
 #include <vector>
 #include <cctype>
-
+#include <cstdlib> 
+/*
+ * ============================================================================
+ *   Ћј—— Board Ч модель шахматной доски и правил игры.
+ * ----------------------------------------------------------------------------
+ *  ќтвечает за:
+ *    Х хранение текущей расстановки фигур (8x8);
+ *    Х генерацию ходов (псевдолегальных и легальных);
+ *    Х проверку шаха и атакованных клеток;
+ *    Х применение ходов (makeMove) и обновление состо€ни€ партии.
+ *
+ *  Ќ≈ знает ничего про SFML/графику Ч это чиста€ логика.
+ *  ¬заимодействие с UI идЄт через handleClick() и геттеры.
+ *
+ *  —истема координат:
+ *    board[row][col], row 0 Ч верх (чЄрные), row 7 Ч низ (белые).
+ *    col 0 Ч левый край (лини€ "a"), col 7 Ч правый (лини€ "h").
+ *
+ *  Ќотаци€ фигур (символы в клетках):
+ *    'K','Q','R','B','N','P' Ч белые,
+ *    'k','q','r','b','n','p' Ч чЄрные,
+ *    '.'                     Ч пуста€ клетка.
+ * ============================================================================
+ */
 
 class Board
 {
 
 public:
-   // тип шахматного хода
+ /* ------------------------------------------------------------------------
+ *  MoveType Ч тип шахматного хода.
+ *  Ќужен, чтобы makeMove() знал, как обрабатывать особые случаи:
+ *  рокировку, вз€тие на проходе, превращение пешки.
+ * --------------------------------------------------------------------- 
+ */
+
    enum class MoveType
    {
-      Normal, 
-      CastleKingSide,
-      CastleQueenSide,
-      EnPassant,
-      Promotion
+      Normal,           // обычный ход (в т.ч. вз€тие)
+      CastleKingSide,   // коротка€ рокировка O-O
+      CastleQueenSide,  // длинна€ рокировка O-O-O
+      EnPassant,        // вз€тие на проходе (пока не реализовано)
+      Promotion         // превращение пешки (пока не реализовано)
    };
+
+ /* ------------------------------------------------------------------------
+ *  Move Ч структура хода.
+ *  ¬Ќ»ћјЌ»≈: пор€док полей Ч —Ќј„јЋј col, ѕќ“ќћ row.
+ *  Ёто важно, т.к. в коде часто пишут { fromCol, fromRow, toCol, toRow }.
+ * --------------------------------------------------------------------- 
+ */
    struct Move
    {
       int fromCol;
@@ -31,9 +67,10 @@ public:
       // используем дл€ превращени€ пешки ('\0' - нет превращени€)
       char promotionPiece = '\0';
    };
-   // конструктор вызывает init()
+   //  онструктор: обнул€ет состо€ние выбора и вызывает init() дл€ расстановки.
    Board();       
-   // начальна€ расстановка 
+   // –асставл€ет фигуры в начальную позицию и сбрасывает всЄ состо€ние партии
+   // (флаги рокировок, координаты королей, очередь хода, вектор ходов).
    void init();
    // обработка клика (выбор/перемещение)
    void handleClick(int row, int col);   
@@ -47,14 +84,18 @@ public:
    bool isMoveLegal(const Move& move, bool isWhite) const;
    bool isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, int row, int col, bool byWhite) const;
    void makeMove(const Move& move);
+   // true Ч сейчас нужно показать игроку попап выбора фигуры
+   bool isWaitingForPromotion() const; 
 
+   void confirmPromotion(char piece);
    // √еттеры 
    const std::array<std::array<char, 8>, 8>& getBoard() const;
    bool isPieceSelected() const;
    int getSelectedRow() const;
    int getSelectedCol() const; 
    bool getOrderMoves() const;
-
+   int getPromotionRow() const;
+   int getPromotionCol() const;
    // —еттеры
    void setOrderMoves(bool order);
 
@@ -66,8 +107,16 @@ private:
    int selectedRow;
    int selectedCol;
    char selectedPiece;
+
+   int enPassantRow = -1; // клетка дл€ вз€ти€ на проходе
+   int enPassantCol = -1;
+
+   bool awaitingPromotion = false; // состо€ние превращени€ (true Ч пешка дошла до последней линии, ждЄм выбора фигуры игроком)
+   Move pendingPromotion; // —охранЄнный ход, который нужно выполнить после выбора фигуры.
+
    std::vector<Move> legalMoves;
    bool whiteToMove = true; // true - ход€т белые, иначе чЄрные
+
    short whiteKingRow{ 7 }; // позиции королей
    short whiteKingCol{ 4 };
    short blackKingRow{ 0 };

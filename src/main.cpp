@@ -49,13 +49,18 @@ int main() {
                eventMouse && eventMouse->button == sf::Mouse::Button::Left()) 
          {
             sf::Vector2i mousePos = sf::Mouse::getPosition(window);  // получаю координаты мыши при нажатии (int)
-            // проверка попадания в доску
-            if (mousePos.x >= offSetX && mousePos.x < offSetX + boardSizePixel && mousePos.y >= offSetY && mousePos.y < offSetY + boardSizePixel)
+            // Сначала — попап превращения. Если он открыт, доска игнорируется.
+            if (handlePromotionClick(mousePos, chessBoard,
+               offSetX, offSetY, cellSizePixel))
             {
-               int col = (mousePos.x - offSetX) / cellSizePixel;        // вычисляем клетку, в которой сейчас мышь
+               // ничего больше не делаем
+            }
+            else if (mousePos.x >= offSetX && mousePos.x < offSetX + boardSizePixel &&
+               mousePos.y >= offSetY && mousePos.y < offSetY + boardSizePixel)
+            {
+               int col = (mousePos.x - offSetX) / cellSizePixel;
                int row = (mousePos.y - offSetY) / cellSizePixel;
-
-               chessBoard.handleClick(row, col); // обработка хода
+               chessBoard.handleClick(row, col);
             }
             
          }
@@ -73,6 +78,7 @@ int main() {
       }
       drawFigures(window, chessBoard.getBoard(), sprites, offSetX, offSetY, cellSizePixel);
       drawHighlightRect(window, chessBoard, cellSizePixel, offSetX, offSetY);
+      drawPromotionPopup(window, chessBoard, sprites, offSetX, offSetY, cellSizePixel);
       window.display();
    }
 

@@ -80,8 +80,7 @@ void drawFigures(sf::RenderWindow& window, const std::array<std::array<char, 8>,
    }
 }
 
-void drawHighlightRect(sf::RenderWindow& window, const Board& board, const int cellSize, const int offSetX,
-   const int offSetY)
+void drawHighlightRect(sf::RenderWindow& window, const Board& board, const int cellSize, const int offSetX, const int offSetY)
 {
    if (board.isPieceSelected())
    {
@@ -98,3 +97,91 @@ void drawHighlightRect(sf::RenderWindow& window, const Board& board, const int c
    }
 }
 
+// ¬озвращает пр€моугольники 4 кнопок попапа превращени€.
+// sqRow/sqCol Ч клетка, где стоит пешка.
+// ¬озвращает в пор€дке: Q, R, B, N (сверху вниз).
+std::array<sf::FloatRect, 4> getPromotionButtonsRect(int sqRow, int sqCol, float offSetX, float offSetY, float cellSize)
+{
+   // ѕозици€ клетки превращени€
+   float sqX = offSetX + sqCol * cellSize;
+   float sqY = offSetY + sqRow * cellSize;
+
+   // ѕо умолчанию попап Ч справа от клетки, столбиком вниз.
+   float popupX = sqX + cellSize;
+   float popupY = sqY;
+
+   // ≈сли не влезает справа Ч ставим слева.
+   float boardRight = offSetX + cellSize * 8;
+   if (popupX + cellSize > boardRight) {
+      popupX = sqX - cellSize;
+   }
+
+   // ≈сли не влезает снизу Ч сдвигаем вверх.
+   float boardBottom = offSetY + cellSize * 8;
+   if (popupY + cellSize * 4 > boardBottom) {
+      popupY = boardBottom - cellSize * 4;
+   }
+
+   std::array<sf::FloatRect, 4> rects;
+   for (int i = 0; i < 4; ++i) {
+      rects[i] = sf::FloatRect({ popupX, popupY + i * cellSize },
+         { cellSize, cellSize });
+   }
+   return rects;
+}
+
+void drawPromotionPopup(sf::RenderWindow& window, const Board& board, const std::vector<sf::Sprite>& sprites, float offSetX, float offSetY, float cellSize)
+{
+   if (!board.isWaitingForPromotion()) return;
+
+   auto rects = getPromotionButtonsRect(board.getPromotionRow(),
+      board.getPromotionCol(),
+      offSetX, offSetY, cellSize);
+
+   // —имволы фигур дл€ отрисовки. ÷вет Ч тот, что сейчас ходит.
+   // ≈сли сейчас ход белых Ч пешка бела€ дошла до 8-й линии.
+   bool white = board.getOrderMoves();
+
+   const char pieces[4] = { 'Q', 'R', 'B', 'N' };
+
+   for (int i = 0; i < 4; ++i) {
+      // ‘он кнопки
+      sf::RectangleShape bg(rects[i].size);
+      bg.setPosition(rects[i].position);
+      bg.setFillColor(sf::Color(50, 50, 50, 230));
+      bg.setOutlineColor(sf::Color::White);
+      bg.setOutlineThickness(2.f);
+      window.draw(bg);
+
+      // »конка фигуры Ч берЄм из уже загруженного атласа
+      char symbol = white ? pieces[i]
+         : static_cast<char>(std::tolower(pieces[i]));
+      int idx = getSpriteIndex(symbol);
+      if (idx >= 0) {
+         sf::Sprite icon = sprites[idx];
+         // ѕозиционируем спрайт так же, как это делает drawFigures
+         icon.setPosition(rects[i].position);
+         window.draw(icon);
+      }
+   }
+}
+
+// true Ч клик поглощЄн попапом (или попап был открыт).
+bool handlePromotionClick(const sf::Vector2i& mousePos, Board& board, float offSetX, float offSetY, float cellSize)
+{
+   if (!board.isWaitingForPromotion()) return false;
+
+   auto rects = getPromotionButtonsRect(board.getPromotionRow(),
+      board.getPromotionCol(),
+      offSetX, offSetY, cellSize);
+
+   const char pieces[4] = { 'Q', 'R', 'B', 'N' };
+   for (int i = 0; i < 4; ++i) {
+      if (rects[i].contains(sf::Vector2f(mousePos))) {
+         board.confirmPromotion(pieces[i]);
+         return true;
+      }
+   }
+   //  лик мимо попапа Ч поглощаем, чтобы не выбралась фигура на доске.
+   return true;
+}

@@ -1,57 +1,63 @@
-#include "Board.h"
+п»ї#include "Board.h"
 
 Board::Board() : pieceSelected(false), selectedRow(-1), selectedCol(-1), selectedPiece('\0') {
    init();
 }
 
 void Board::init() {
-   // Начальная расстановка (снизу вверх, как в шахматной нотации):
-   // 8-я линия (ряд 0) – чёрные фигуры
+   // РќР°С‡Р°Р»СЊРЅР°СЏ СЂР°СЃСЃС‚Р°РЅРѕРІРєР° (СЃРЅРёР·Сѓ РІРІРµСЂС…, РєР°Рє РІ С€Р°С…РјР°С‚РЅРѕР№ РЅРѕС‚Р°С†РёРё):
+   // 8-СЏ Р»РёРЅРёСЏ (СЂСЏРґ 0) вЂ“ С‡С‘СЂРЅС‹Рµ С„РёРіСѓСЂС‹
    board[0] = { 'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r' };
-   // 7-я линия (ряд 1) – чёрные пешки
+   // 7-СЏ Р»РёРЅРёСЏ (СЂСЏРґ 1) вЂ“ С‡С‘СЂРЅС‹Рµ РїРµС€РєРё
    board[1] = { 'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p' };
 
-   // Ряды 2–5 – пустые клетки (обозначим точкой или пробелом)
+   // Р СЏРґС‹ 2вЂ“5 вЂ“ РїСѓСЃС‚С‹Рµ РєР»РµС‚РєРё (РѕР±РѕР·РЅР°С‡РёРј С‚РѕС‡РєРѕР№ РёР»Рё РїСЂРѕР±РµР»РѕРј)
    for (int i = 2; i <= 5; ++i) {
-      board[i].fill('.');  // или ' ' – символ пустой клетки
+      board[i].fill('.');  // РёР»Рё ' ' вЂ“ СЃРёРјРІРѕР» РїСѓСЃС‚РѕР№ РєР»РµС‚РєРё
    }
 
-   // 2-я линия (ряд 6) – белые пешки
+   // 2-СЏ Р»РёРЅРёСЏ (СЂСЏРґ 6) вЂ“ Р±РµР»С‹Рµ РїРµС€РєРё
    board[6] = { 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P' };
-   // 1-я линия (ряд 7) – белые фигуры
+   // 1-СЏ Р»РёРЅРёСЏ (СЂСЏРґ 7) вЂ“ Р±РµР»С‹Рµ С„РёРіСѓСЂС‹
    board[7] = { 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R' };
 
-   // Сброс состояния выбора
+   // РЎР±СЂРѕСЃ СЃРѕСЃС‚РѕСЏРЅРёСЏ РІС‹Р±РѕСЂР°
    pieceSelected = false;
    selectedRow = -1;
    selectedCol = -1;
    selectedPiece = '\0';
-   // стартовые позиции королей
+   // СЃС‚Р°СЂС‚РѕРІС‹Рµ РїРѕР·РёС†РёРё РєРѕСЂРѕР»РµР№
    whiteKingRow = 7;
    whiteKingCol = 4;
    blackKingRow = 0;
    blackKingCol = 4;
-   // новая партия начинается с белых
+   // РЅРѕРІР°СЏ РїР°СЂС‚РёСЏ РЅР°С‡РёРЅР°РµС‚СЃСЏ СЃ Р±РµР»С‹С…
    whiteToMove = true;
-   // сброс для рокировок
+   // СЃР±СЂРѕСЃ РґР»СЏ СЂРѕРєРёСЂРѕРІРѕРє
    whiteCanCastleKingSide = true;
    whiteCanCastleQueenSide = true;
    blackCanCastleKingSide = true;
    blackCanCastleQueenSide = true;
-   // очистка допустимых ходов от прошлой игры
+   // СЃР±СЂРѕСЃ РІР·СЏС‚РёР№ РЅР° РїСЂРѕС…РѕРґРµ
+   enPassantRow = -1;
+   enPassantCol = -1;
+   // СЃР±СЂРѕСЃ РїСЂРµРІСЂР°С‰РµРЅРёР№
+   awaitingPromotion = false;
+   pendingPromotion = Move{};   // Р·Р°РЅСѓР»РёС‚СЊ СЃС‚СЂСѓРєС‚СѓСЂСѓ
+   // РѕС‡РёСЃС‚РєР° РґРѕРїСѓСЃС‚РёРјС‹С… С…РѕРґРѕРІ РѕС‚ РїСЂРѕС€Р»РѕР№ РёРіСЂС‹
    legalMoves.clear();
 }
 
 void Board::handleClick(int row, int col) {
 
-   // Игнорируем клик вне доски
+   // РРіРЅРѕСЂРёСЂСѓРµРј РєР»РёРє РІРЅРµ РґРѕСЃРєРё
    if (row < 0 || row >= 8 || col < 0 || col >= 8) {
       return;
    }
    
    if (!pieceSelected) 
    {
-      // Попытка выбрать фигуру
+      // РџРѕРїС‹С‚РєР° РІС‹Р±СЂР°С‚СЊ С„РёРіСѓСЂСѓ
 
       if (board[row][col] != '.') 
       {
@@ -66,10 +72,10 @@ void Board::handleClick(int row, int col) {
       }
    }
    else {
-      // Фигура уже выбрана
+      // Р¤РёРіСѓСЂР° СѓР¶Рµ РІС‹Р±СЂР°РЅР°
       if (row == selectedRow && col == selectedCol) 
       {
-         // Повторный клик по той же клетке – отмена выбора
+         // РџРѕРІС‚РѕСЂРЅС‹Р№ РєР»РёРє РїРѕ С‚РѕР№ Р¶Рµ РєР»РµС‚РєРµ вЂ“ РѕС‚РјРµРЅР° РІС‹Р±РѕСЂР°
          pieceSelected = false;
          selectedRow = -1;
          selectedCol = -1;
@@ -77,15 +83,29 @@ void Board::handleClick(int row, int col) {
       }
       else {
          const Move* move = findLegalMove(legalMoves, selectedRow, selectedCol, row, col);
-         // Перемещение фигуры
+         // РџРµСЂРµРјРµС‰РµРЅРёРµ С„РёРіСѓСЂС‹
          if (move != nullptr) 
          {
+            if (move->type == MoveType::Promotion) {
+               
+               awaitingPromotion = true;
+               pendingPromotion = *move;
+               pendingPromotion.promotionPiece = '\0';
+
+               // РЎРЅРёРјР°РµРј РІС‹РґРµР»РµРЅРёРµ СЃ РїРµС€РєРё вЂ” РїРѕРїР°Рї Р±РµСЂС‘С‚ СѓРїСЂР°РІР»РµРЅРёРµ РЅР° СЃРµР±СЏ
+               pieceSelected = false;
+               selectedRow = -1;
+               selectedCol = -1;
+               selectedPiece = '\0';
+               legalMoves.clear();
+               return;
+            }
             makeMove(*move);
          }
          else 
          {
             char target = board[row][col];
-            // Если своя фигура, переключаемся на неё
+            // Р•СЃР»Рё СЃРІРѕСЏ С„РёРіСѓСЂР°, РїРµСЂРµРєР»СЋС‡Р°РµРјСЃСЏ РЅР° РЅРµС‘
             if (target != '.' && std::isupper(static_cast<unsigned char>(target)) == whiteToMove)
             {
                legalMoves = generateLegalMoves(row, col);
@@ -111,24 +131,24 @@ void Board::handleClick(int row, int col) {
 std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
 {
    std::vector<Move> moves;
-   moves.reserve(32); // максимально возможное число ходов (ферзь в открытой позиции)
+   moves.reserve(32); // РјР°РєСЃРёРјР°Р»СЊРЅРѕ РІРѕР·РјРѕР¶РЅРѕРµ С‡РёСЃР»Рѕ С…РѕРґРѕРІ (С„РµСЂР·СЊ РІ РѕС‚РєСЂС‹С‚РѕР№ РїРѕР·РёС†РёРё)
 
-   // Проверка границ
+   // РџСЂРѕРІРµСЂРєР° РіСЂР°РЅРёС†
    if (row < 0 || row >= 8 || col < 0 || col >= 8) { return moves; }
 
 
-   char piece = board[row][col];          // текущая фигура
-   if (piece == '.') { return moves; }    // нажатие на пустую клетку
+   char piece = board[row][col];          // С‚РµРєСѓС‰Р°СЏ С„РёРіСѓСЂР°
+   if (piece == '.') { return moves; }    // РЅР°Р¶Р°С‚РёРµ РЅР° РїСѓСЃС‚СѓСЋ РєР»РµС‚РєСѓ
 
-   char pieceUpper = std::toupper(static_cast<unsigned char>(piece));   // Кладём заглавную букву св стиле С
-   bool isWhite = std::isupper(static_cast<unsigned char>(piece));      // смотрим, заглавная или маленькая буква
+   char pieceUpper = std::toupper(static_cast<unsigned char>(piece));   // РљР»Р°РґС‘Рј Р·Р°РіР»Р°РІРЅСѓСЋ Р±СѓРєРІСѓ СЃРІ СЃС‚РёР»Рµ РЎ
+   bool isWhite = std::isupper(static_cast<unsigned char>(piece));      // СЃРјРѕС‚СЂРёРј, Р·Р°РіР»Р°РІРЅР°СЏ РёР»Рё РјР°Р»РµРЅСЊРєР°СЏ Р±СѓРєРІР°
   
-   // Лямбда для проверки границ
+   // Р›СЏРјР±РґР° РґР»СЏ РїСЂРѕРІРµСЂРєРё РіСЂР°РЅРёС†
    auto isInside = [](int r, int c) {
       return r >= 0 && r < 8 && c >= 0 && c < 8;
       };
 
-   // Лямбда для проверки, является ли клетка вражеской или пустой
+   // Р›СЏРјР±РґР° РґР»СЏ РїСЂРѕРІРµСЂРєРё, СЏРІР»СЏРµС‚СЃСЏ Р»Рё РєР»РµС‚РєР° РІСЂР°Р¶РµСЃРєРѕР№ РёР»Рё РїСѓСЃС‚РѕР№
    auto canMoveTo = [&](int r, int c) {
       if (!isInside(r, c)) { return false; }
       char target = board[r][c];
@@ -136,17 +156,36 @@ std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
       };
 
    switch (pieceUpper) {
-   case 'P': { // Пешка
+   case 'P': { // РџРµС€РєР°
       int dir = isWhite ? -1 : 1;
       int startRow = isWhite ? 6 : 1;
+      int lastRow = isWhite ? 0 : 7;   // РїРѕСЃР»РµРґРЅСЏСЏ Р»РёРЅРёСЏ РґР»СЏ РїСЂРµРІСЂР°С‰РµРЅРёСЏ
 
-      // Ход вперёд
+      // РІСЃРїРѕРјРѕРіР°С‚РµР»СЊРЅР°СЏ Р»СЏРјР±РґР°
+      auto addPawnMove = [&](int toRow, int toCol) 
+         {
+         if (toRow == lastRow) 
+         {
+            // РџРµС€РєР° РґРѕС…РѕРґРёС‚ РґРѕ РєСЂР°СЏ в†’ 4 РІР°СЂРёР°РЅС‚Р° РїСЂРµРІСЂР°С‰РµРЅРёСЏ
+            const char promoPieces[4] = { 'Q', 'R', 'B', 'N' };
+            for (char pc : promoPieces) 
+            {
+               moves.push_back({ col, row, toCol, toRow, MoveType::Promotion, pc });
+            }
+         }
+         else 
+         {
+            moves.push_back({ col, row, toCol, toRow });   // РѕР±С‹С‡РЅС‹Р№ С…РѕРґ
+         }
+         };
+
+      // РҐРѕРґ РІРїРµСЂС‘Рґ
       int newRow = row + dir;
       int newCol = col;
       if (isInside(newRow, newCol) && board[newRow][newCol] == '.') {
-         moves.push_back({ col, row, newCol, newRow });
+         addPawnMove(newRow, newCol);
 
-         // Двойной ход с начальной позиции
+         // Р”РІРѕР№РЅРѕР№ С…РѕРґ СЃ РЅР°С‡Р°Р»СЊРЅРѕР№ РїРѕР·РёС†РёРё
          if (row == startRow) {
             int newRow2 = row + 2 * dir;
             int newCol2 = col;
@@ -156,21 +195,31 @@ std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
          }
       }
 
-      // Взятия по диагоналям
+      // Р’Р·СЏС‚РёСЏ РїРѕ РґРёР°РіРѕРЅР°Р»СЏРј
       int captureRow = row + dir;
       for (int dcol = -1; dcol <= 1; dcol += 2) {
          int captureCol = col + dcol;
          if (isInside(captureRow, captureCol)) {
             char target = board[captureRow][captureCol];
             if (target != '.' && (isWhite != std::isupper(static_cast<unsigned char>(target)))) {
-               moves.push_back({ col, row, captureCol, captureRow });
+               addPawnMove(captureRow, captureCol);
             }
          }
       }
+
+      // РІР·СЏС‚РёРµ РЅР° РїСЂРѕС…РѕРґРµ
+      int epRow = row + dir;                     // С†РµР»РµРІР°СЏ СЃС‚СЂРѕРєР°
+      for (int dcol = -1; dcol <= 1; dcol += 2) {
+         int epCol = col + dcol;                 // С†РµР»РµРІРѕР№ СЃС‚РѕР»Р±РµС†
+         if (enPassantRow >= 0 && enPassantCol >= 0 && epRow == enPassantRow && epCol == enPassantCol) {
+            moves.push_back({ col, row, epCol, epRow, MoveType::EnPassant });
+         }
+      }
+
       break;
    }
 
-   case 'N': { // Конь
+   case 'N': { // РљРѕРЅСЊ
       const int offsets[8][2] = {
           {2, 1}, {2, -1}, {-2, 1}, {-2, -1},
           {1, 2}, {1, -2}, {-1, 2}, {-1, -2}
@@ -185,7 +234,7 @@ std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
       break;
    }
 
-   case 'B': { // Слон
+   case 'B': { // РЎР»РѕРЅ
       const int dirs[4][2] = {
           {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
       };
@@ -210,7 +259,7 @@ std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
       break;
    }
 
-   case 'R': { // Ладья
+   case 'R': { // Р›Р°РґСЊСЏ
       const int dirs[4][2] = {
           {1, 0}, {-1, 0}, {0, 1}, {0, -1}
       };
@@ -235,7 +284,7 @@ std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
       break;
    }
 
-   case 'Q': { // Ферзь (слон + ладья)
+   case 'Q': { // Р¤РµСЂР·СЊ (СЃР»РѕРЅ + Р»Р°РґСЊСЏ)
       const int dirs[8][2] = {
           {1, 0}, {-1, 0}, {0, 1}, {0, -1},
           {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
@@ -261,7 +310,7 @@ std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
       break;
    }
 
-   case 'K': { // Король
+   case 'K': { // РљРѕСЂРѕР»СЊ
       const int offsets[8][2] = {
           {1, 0}, {-1, 0}, {0, 1}, {0, -1},
           {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
@@ -273,7 +322,7 @@ std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
             moves.push_back({ col, row, toCol, toRow });
          }
       }
-      // рокировка
+      // СЂРѕРєРёСЂРѕРІРєР°
       int homeRow = isWhite ? 7 : 0;
       if (row == homeRow && col == 4)
       {
@@ -294,7 +343,7 @@ std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
    }
 
    default:
-      break; // неизвестная фигура
+      break; // РЅРµРёР·РІРµСЃС‚РЅР°СЏ С„РёРіСѓСЂР°
    }
 
    return moves;
@@ -302,18 +351,18 @@ std::vector<Board::Move> Board::generatePseudoLegalMoves(int row, int col) const
 
 std::vector<Board::Move> Board::generateLegalMoves(int row, int col) const
 {
-   // Сначала создание всех псевдолегальных ходов фигуры
+   // РЎРЅР°С‡Р°Р»Р° СЃРѕР·РґР°РЅРёРµ РІСЃРµС… РїСЃРµРІРґРѕР»РµРіР°Р»СЊРЅС‹С… С…РѕРґРѕРІ С„РёРіСѓСЂС‹
    auto pseudo = generatePseudoLegalMoves(row, col); 
 
    std::vector<Move> legal;
    legal.reserve(pseudo.size());
 
-   // Если клетка пустая, ходов быть не может
+   // Р•СЃР»Рё РєР»РµС‚РєР° РїСѓСЃС‚Р°СЏ, С…РѕРґРѕРІ Р±С‹С‚СЊ РЅРµ РјРѕР¶РµС‚
    if (board[row][col] == '.')
    {
       return legal;
    }
-   // определяем цвет фигуры, для которой генерируем ходы
+   // РѕРїСЂРµРґРµР»СЏРµРј С†РІРµС‚ С„РёРіСѓСЂС‹, РґР»СЏ РєРѕС‚РѕСЂРѕР№ РіРµРЅРµСЂРёСЂСѓРµРј С…РѕРґС‹
    bool isWhite = std::isupper(static_cast<unsigned char>(board[row][col]));
 
    for (const Move& m : pseudo) {
@@ -330,36 +379,42 @@ const Board::Move* Board::findLegalMove(const std::vector<Move>& legalMoves, int
       if (move.fromRow == selectedRow && move.fromCol == selectedCol &&
           move.toRow == toRow && move.toCol == toCol)
       {
-         // возвращаем адрес выбранного хода
+         // РІРѕР·РІСЂР°С‰Р°РµРј Р°РґСЂРµСЃ РІС‹Р±СЂР°РЅРЅРѕРіРѕ С…РѕРґР°
          return &move;
       }
    }
-   // если ничего нет, то nullptr
+   // РµСЃР»Рё РЅРёС‡РµРіРѕ РЅРµС‚, С‚Рѕ nullptr
    return nullptr;
 }
 
 bool Board::isMoveLegal(const Move& move, bool isWhite) const
 {
-   // 1. Копирование доски
+   // 1. РљРѕРїРёСЂРѕРІР°РЅРёРµ РґРѕСЃРєРё
    auto tempBoard = board;
 
-   // 2. Копир. координаты королей
+   // 2. РљРѕРїРёСЂ. РєРѕРѕСЂРґРёРЅР°С‚С‹ РєРѕСЂРѕР»РµР№
    int tempWhiteKingRow = whiteKingRow;
    int tempWhiteKingCol = whiteKingCol;
    int tempBlackKingRow = blackKingRow;
    int tempBlackKingCol = blackKingCol;
 
-   // 3. Выполнение хода на временной доске (обновляя координаты королей)
+   // 3. Р’С‹РїРѕР»РЅРµРЅРёРµ С…РѕРґР° РЅР° РІСЂРµРјРµРЅРЅРѕР№ РґРѕСЃРєРµ (РѕР±РЅРѕРІР»СЏСЏ РєРѕРѕСЂРґРёРЅР°С‚С‹ РєРѕСЂРѕР»РµР№)
    char piece = tempBoard[move.fromRow][move.fromCol];
    tempBoard[move.toRow][move.toCol] = piece;
    tempBoard[move.fromRow][move.fromCol] = '.';
+
+   // Р’Р·СЏС‚РёРµ РЅР° РїСЂРѕС…РѕРґРµ вЂ” СѓРґР°Р»СЏРµРј СЃСЉРµРґРµРЅРЅСѓСЋ РїРµС€РєСѓ,
+   if (move.type == MoveType::EnPassant) {
+      tempBoard[move.fromRow][move.toCol] = '.';
+   }
+
    if (move.type == MoveType::CastleKingSide)
    {
       char rook = tempBoard[move.fromRow][7];
       tempBoard[move.fromRow][7] = '.';
       tempBoard[move.fromRow][5] = rook;
    }
-   // длинная
+   // РґР»РёРЅРЅР°СЏ
    if (move.type == MoveType::CastleQueenSide)
    {
       char rook = tempBoard[move.fromRow][0];
@@ -367,20 +422,20 @@ bool Board::isMoveLegal(const Move& move, bool isWhite) const
       tempBoard[move.fromRow][3] = rook;
    }
 
-   // Если ходит король — обновляю его координаты
+   // Р•СЃР»Рё С…РѕРґРёС‚ РєРѕСЂРѕР»СЊ вЂ” РѕР±РЅРѕРІР»СЏСЋ РµРіРѕ РєРѕРѕСЂРґРёРЅР°С‚С‹
    char upper = std::toupper(piece);
    if (upper == 'K') {
-      if (std::isupper(piece)) { // белый король
+      if (std::isupper(piece)) { // Р±РµР»С‹Р№ РєРѕСЂРѕР»СЊ
          tempWhiteKingRow = move.toRow;
          tempWhiteKingCol = move.toCol;
       }
-      else { // чёрный король
+      else { // С‡С‘СЂРЅС‹Р№ РєРѕСЂРѕР»СЊ
          tempBlackKingRow = move.toRow;
          tempBlackKingCol = move.toCol;
       }
    }
 
-   // 4. Теперь беру координаты короля нужного цвета
+   // 4. РўРµРїРµСЂСЊ Р±РµСЂСѓ РєРѕРѕСЂРґРёРЅР°С‚С‹ РєРѕСЂРѕР»СЏ РЅСѓР¶РЅРѕРіРѕ С†РІРµС‚Р°
    int kingRow, kingCol;
    if (isWhite) {
       kingRow = tempWhiteKingRow;
@@ -391,27 +446,27 @@ bool Board::isMoveLegal(const Move& move, bool isWhite) const
       kingCol = tempBlackKingCol;
    }
 
-   // 5. Проверяю атаку на этой клетке
+   // 5. РџСЂРѕРІРµСЂСЏСЋ Р°С‚Р°РєСѓ РЅР° СЌС‚РѕР№ РєР»РµС‚РєРµ
    bool attacked = isSquareAttacked(tempBoard, kingRow, kingCol, !isWhite);
    return !attacked;
 }
 
 bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, int row, int col, bool byWhite) const
 {
-   // Вспомогательная лямбда для проверки, что клетка содержит фигуру нужного цвета
+   // Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅР°СЏ Р»СЏРјР±РґР° РґР»СЏ РїСЂРѕРІРµСЂРєРё, С‡С‚Рѕ РєР»РµС‚РєР° СЃРѕРґРµСЂР¶РёС‚ С„РёРіСѓСЂСѓ РЅСѓР¶РЅРѕРіРѕ С†РІРµС‚Р°
    auto isEnemy = [&](int r, int c) -> bool {
       if (r < 0 || r >= 8 || c < 0 || c >= 8) return false;
       char p = board[r][c];
       if (p == '.') return false;
       bool isWhitePiece = std::isupper(static_cast<unsigned char>(p));
-      return isWhitePiece == byWhite; // true, если цвет совпадает с атакующим
+      return isWhitePiece == byWhite; // true, РµСЃР»Рё С†РІРµС‚ СЃРѕРІРїР°РґР°РµС‚ СЃ Р°С‚Р°РєСѓСЋС‰РёРј
       };
 
-   // 1. Проверка линий (ладья, слон, ферзь)
-   // Направления: {dr, dc}
+   // 1. РџСЂРѕРІРµСЂРєР° Р»РёРЅРёР№ (Р»Р°РґСЊСЏ, СЃР»РѕРЅ, С„РµСЂР·СЊ)
+   // РќР°РїСЂР°РІР»РµРЅРёСЏ: {dr, dc}
    const int dirs[8][2] = {
-       {1,0}, {-1,0}, {0,1}, {0,-1},  // вертикали и горизонтали
-       {1,1}, {1,-1}, {-1,1}, {-1,-1} // диагонали
+       {1,0}, {-1,0}, {0,1}, {0,-1},  // РІРµСЂС‚РёРєР°Р»Рё Рё РіРѕСЂРёР·РѕРЅС‚Р°Р»Рё
+       {1,1}, {1,-1}, {-1,1}, {-1,-1} // РґРёР°РіРѕРЅР°Р»Рё
    };
    for (int d = 0; d < 8; ++d) {
       int r = row + dirs[d][0];
@@ -423,19 +478,19 @@ bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, in
             c += dirs[d][1];
             continue;
          }
-         // Нашли фигуру
+         // РќР°С€Р»Рё С„РёРіСѓСЂСѓ
          if (isEnemy(r, c)) {
             char upper = std::toupper(static_cast<unsigned char>(p));
-            // Для вертикалей/горизонталей (d < 4) – ладья или ферзь
+            // Р”Р»СЏ РІРµСЂС‚РёРєР°Р»РµР№/РіРѕСЂРёР·РѕРЅС‚Р°Р»РµР№ (d < 4) вЂ“ Р»Р°РґСЊСЏ РёР»Рё С„РµСЂР·СЊ
             if (d < 4 && (upper == 'R' || upper == 'Q')) return true;
-            // Для диагоналей (d >= 4) – слон или ферзь
+            // Р”Р»СЏ РґРёР°РіРѕРЅР°Р»РµР№ (d >= 4) вЂ“ СЃР»РѕРЅ РёР»Рё С„РµСЂР·СЊ
             if (d >= 4 && (upper == 'B' || upper == 'Q')) return true;
          }
-         break; // дальше не идём, т.к. наткнулись на фигуру (свою или чужую, но не ту, что нам нужна)
+         break; // РґР°Р»СЊС€Рµ РЅРµ РёРґС‘Рј, С‚.Рє. РЅР°С‚РєРЅСѓР»РёСЃСЊ РЅР° С„РёРіСѓСЂСѓ (СЃРІРѕСЋ РёР»Рё С‡СѓР¶СѓСЋ, РЅРѕ РЅРµ С‚Сѓ, С‡С‚Рѕ РЅР°Рј РЅСѓР¶РЅР°)
       }
    }
 
-   // 2. Проверка коней (8 позиций)
+   // 2. РџСЂРѕРІРµСЂРєР° РєРѕРЅРµР№ (8 РїРѕР·РёС†РёР№)
    const int knightOffsets[8][2] = {
        {2,1}, {2,-1}, {-2,1}, {-2,-1},
        {1,2}, {1,-2}, {-1,2}, {-1,-2}
@@ -450,8 +505,8 @@ bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, in
       }
    }
 
-   // 3. Проверка пешек (диагонали вперёд)
-   if (byWhite) { // атакуют белые пешки (значит они бьют вниз по доске, т.е. row+1)
+   // 3. РџСЂРѕРІРµСЂРєР° РїРµС€РµРє (РґРёР°РіРѕРЅР°Р»Рё РІРїРµСЂС‘Рґ)
+   if (byWhite) { // Р°С‚Р°РєСѓСЋС‚ Р±РµР»С‹Рµ РїРµС€РєРё (Р·РЅР°С‡РёС‚ РѕРЅРё Р±СЊСЋС‚ РІРЅРёР· РїРѕ РґРѕСЃРєРµ, С‚.Рµ. row+1)
       int r = row + 1;
       if (r < 8) {
          for (int dc = -1; dc <= 1; dc += 2) {
@@ -460,7 +515,7 @@ bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, in
          }
       }
    }
-   else { // атакуют чёрные пешки (бьют вверх, row-1)
+   else { // Р°С‚Р°РєСѓСЋС‚ С‡С‘СЂРЅС‹Рµ РїРµС€РєРё (Р±СЊСЋС‚ РІРІРµСЂС…, row-1)
       int r = row - 1;
       if (r >= 0) {
          for (int dc = -1; dc <= 1; dc += 2) {
@@ -470,7 +525,7 @@ bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, in
       }
    }
 
-   // 4. (Опционально) Проверка короля – если рядом стоит вражеский король (не должно случаться в легальной позиции)
+   // 4. (РћРїС†РёРѕРЅР°Р»СЊРЅРѕ) РџСЂРѕРІРµСЂРєР° РєРѕСЂРѕР»СЏ вЂ“ РµСЃР»Рё СЂСЏРґРѕРј СЃС‚РѕРёС‚ РІСЂР°Р¶РµСЃРєРёР№ РєРѕСЂРѕР»СЊ (РЅРµ РґРѕР»Р¶РЅРѕ СЃР»СѓС‡Р°С‚СЊСЃСЏ РІ Р»РµРіР°Р»СЊРЅРѕР№ РїРѕР·РёС†РёРё)
    const int kingOffsets[8][2] = {
        {1,0}, {-1,0}, {0,1}, {0,-1},
        {1,1}, {1,-1}, {-1,1}, {-1,-1}
@@ -490,16 +545,16 @@ bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, in
 
 void Board::makeMove(const Move& move) 
 {
-   // запоминаем фигуру, которую двигаем
+   // Р·Р°РїРѕРјРёРЅР°РµРј С„РёРіСѓСЂСѓ, РєРѕС‚РѕСЂСѓСЋ РґРІРёРіР°РµРј
    char piece = board[move.fromRow][move.fromCol];
    
-   // запоминаем взятую фигуру
+   // Р·Р°РїРѕРјРёРЅР°РµРј РІР·СЏС‚СѓСЋ С„РёРіСѓСЂСѓ
    char capturedPiece = board[move.toRow][move.toCol];
 
-   // ===========================
-   // ОБНОВЛЕНИЕ ПРАВ НА РОКИРОВКУ
-   // ===========================
-   // Если переместили короля
+   
+
+   // 1. РћР‘РќРћР’Р›Р•РќРР• РџР РђР’ РќРђ Р РћРљРР РћР’РљРЈ
+   // Р•СЃР»Рё РїРµСЂРµРјРµСЃС‚РёР»Рё РєРѕСЂРѕР»СЏ
    if (piece == 'K')
    {
       whiteCanCastleKingSide = false;
@@ -510,38 +565,35 @@ void Board::makeMove(const Move& move)
       blackCanCastleKingSide = false;
       blackCanCastleQueenSide = false;
    }
-   // Если ходит белая ладья с а1 -> нельзя длинную рокировку
+   // Р•СЃР»Рё С…РѕРґРёС‚ Р±РµР»Р°СЏ Р»Р°РґСЊСЏ СЃ Р°1 -> РЅРµР»СЊР·СЏ РґР»РёРЅРЅСѓСЋ СЂРѕРєРёСЂРѕРІРєСѓ
    if (piece == 'R' && move.fromRow == 7 && move.fromCol == 0) { whiteCanCastleQueenSide = false; }
-   // Если ходит белая ладья с h1 -> нельзя короткую рокировку
+   // Р•СЃР»Рё С…РѕРґРёС‚ Р±РµР»Р°СЏ Р»Р°РґСЊСЏ СЃ h1 -> РЅРµР»СЊР·СЏ РєРѕСЂРѕС‚РєСѓСЋ СЂРѕРєРёСЂРѕРІРєСѓ
    if (piece == 'R' && move.fromRow == 7 && move.fromCol == 7) { whiteCanCastleKingSide = false; }
-   // аналогично для чёрных
-   // Если ходит чёрная ладья с а8 -> нельзя длинную рокировку
+   // Р°РЅР°Р»РѕРіРёС‡РЅРѕ РґР»СЏ С‡С‘СЂРЅС‹С…
+   // Р•СЃР»Рё С…РѕРґРёС‚ С‡С‘СЂРЅР°СЏ Р»Р°РґСЊСЏ СЃ Р°8 -> РЅРµР»СЊР·СЏ РґР»РёРЅРЅСѓСЋ СЂРѕРєРёСЂРѕРІРєСѓ
    if (piece == 'r' && move.fromRow == 0 && move.fromCol == 0) { blackCanCastleQueenSide = false; }
-   // Если ходит белая ладья с h8 -> нельзя короткую рокировку
+   // Р•СЃР»Рё С…РѕРґРёС‚ Р±РµР»Р°СЏ Р»Р°РґСЊСЏ СЃ h8 -> РЅРµР»СЊР·СЏ РєРѕСЂРѕС‚РєСѓСЋ СЂРѕРєРёСЂРѕРІРєСѓ
    if (piece == 'r' && move.fromRow == 0 && move.fromCol == 7) { blackCanCastleKingSide = false; }
    
-   // если стартовые ладьи взяты врагом
+   // РµСЃР»Рё СЃС‚Р°СЂС‚РѕРІС‹Рµ Р»Р°РґСЊРё РІР·СЏС‚С‹ РІСЂР°РіРѕРј
    if (capturedPiece == 'R' && move.toRow == 7 && move.toCol == 0) { whiteCanCastleQueenSide = false; }
    if (capturedPiece == 'R' && move.toRow == 7 && move.toCol == 7) { whiteCanCastleKingSide = false; }
    if (capturedPiece == 'r' && move.toRow == 0 && move.toCol == 0) { blackCanCastleQueenSide = false; }
    if (capturedPiece == 'r' && move.toRow == 0 && move.toCol == 7) { blackCanCastleKingSide = false; }
-   //=====================================
    
-   // перемещаем фигуру
+   // РїРµСЂРµРјРµС‰Р°РµРј С„РёРіСѓСЂСѓ
    board[move.fromRow][move.fromCol] = '.';
-   board[move.toRow][move.toCol] = selectedPiece;
+   board[move.toRow][move.toCol] = piece;
 
-   //=====================================
-   // ПЕРЕМЕЩЕНИЕ ЛАДЬИ ПРИ РОКИРОВКЕ
-   // ====================================
-   // короткая
+   // 2. РџР•Р Р•РњР•Р©Р•РќРР• Р›РђР”Р¬Р РџР Р Р РћРљРР РћР’РљР•
+   // РєРѕСЂРѕС‚РєР°СЏ
    if (move.type == MoveType::CastleKingSide)
    {
       char rook = board[move.fromRow][7];
       board[move.fromRow][7] = '.';
       board[move.fromRow][5] = rook;
    }
-   // длинная
+   // РґР»РёРЅРЅР°СЏ
    if (move.type == MoveType::CastleQueenSide)
    {
       char rook = board[move.fromRow][0];
@@ -549,16 +601,44 @@ void Board::makeMove(const Move& move)
       board[move.fromRow][3] = rook;
    }
 
-   // ====================================
-   // После хода фигура больше не выбрана
+   // 3. Р’Р—РЇРўРР• РќРђ РџР РћРҐРћР”Р•
+   if (move.type == MoveType::EnPassant) {
+      board[move.fromRow][move.toCol] = '.';   // СѓР±РёСЂР°РµРј Р¶РµСЂС‚РІСѓ
+   }
+   // РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ вЂ” РѕР±РЅСѓР»СЏРµРј РїСЂР°РІРѕ РЅР° РІР·СЏС‚РёРµ РЅР° РїСЂРѕС…РѕРґРµ
+   enPassantRow = -1;
+   enPassantCol = -1;
+   if (std::toupper(static_cast<unsigned char>(piece)) == 'P')
+   {
+      int diff = std::abs(move.toRow - move.fromRow);
+      if (diff == 2)   // РґРІРѕР№РЅРѕР№ С…РѕРґ РїРµС€РєРё
+      {
+         // В«РџСЂРѕРїСѓС‰РµРЅРЅР°СЏВ» РєР»РµС‚РєР° вЂ” СЃСЂРµРґРЅСЏСЏ РјРµР¶РґСѓ from Рё to.
+         // РЎС‚РѕР»Р±РµС† РЅРµ РјРµРЅСЏРµС‚СЃСЏ (РїРµС€РєР° РёРґС‘С‚ РїРѕ РІРµСЂС‚РёРєР°Р»Рё).
+         enPassantRow = (move.fromRow + move.toRow) / 2;
+         enPassantCol = move.fromCol;
+      }
+   }
+   // 4. РџР Р•Р’Р РђР©Р•РќРР•
+   if (move.type == MoveType::Promotion)
+   {
+      bool movingIsWhite = std::isupper(static_cast<unsigned char>(piece));
+      char newPiece = movingIsWhite
+         ? std::toupper(static_cast<unsigned char>(move.promotionPiece))
+         : std::tolower(static_cast<unsigned char>(move.promotionPiece));
+      board[move.toRow][move.toCol] = newPiece;
+   }
+
+
+   // РџРѕСЃР»Рµ С…РѕРґР° С„РёРіСѓСЂР° Р±РѕР»СЊС€Рµ РЅРµ РІС‹Р±СЂР°РЅР°
    pieceSelected = false;
    selectedRow = -1;
    selectedCol = -1;
    selectedPiece = '\0';
-   // передача хода другому цвету
+   // РїРµСЂРµРґР°С‡Р° С…РѕРґР° РґСЂСѓРіРѕРјСѓ С†РІРµС‚Сѓ
    whiteToMove = !whiteToMove;
 
-   // 1. Обновляем координаты короля, если это король
+   // 4. РћР±РЅРѕРІР»СЏРµРј РєРѕРѕСЂРґРёРЅР°С‚С‹ РєРѕСЂРѕР»СЏ, РµСЃР»Рё СЌС‚Рѕ РєРѕСЂРѕР»СЊ
    char upper = std::toupper(static_cast<unsigned char>(piece));
    if (upper == 'K') {
       if (std::isupper(static_cast<unsigned char>(piece))) {
@@ -570,8 +650,6 @@ void Board::makeMove(const Move& move)
          blackKingCol = move.toCol;
       }
    }
-
-   // 2. (Позже) обработка рокировки, взятие на проходе, превращения пешки
 }
 
 const std::array<std::array<char, 8>, 8>& Board::getBoard() const {
@@ -603,15 +681,15 @@ void Board::setOrderMoves(bool order)
 
 bool Board::canCastleKingSide(const std::array<std::array<char, 8>, 8>& board, bool white) const
 {
-   // У белых король находится на 7-й строке массива,
-   // у чёрных — на 0-й.
+   // РЈ Р±РµР»С‹С… РєРѕСЂРѕР»СЊ РЅР°С…РѕРґРёС‚СЃСЏ РЅР° 7-Р№ СЃС‚СЂРѕРєРµ РјР°СЃСЃРёРІР°,
+   // Сѓ С‡С‘СЂРЅС‹С… вЂ” РЅР° 0-Р№.
    int row = white ? 7 : 0;
 
-   // Символы короля и ладьи нужного цвета.
+   // РЎРёРјРІРѕР»С‹ РєРѕСЂРѕР»СЏ Рё Р»Р°РґСЊРё РЅСѓР¶РЅРѕРіРѕ С†РІРµС‚Р°.
    char king = white ? 'K' : 'k';
    char rook = white ? 'R' : 'r';
    // =========================================
-   // 1. ЕСТЬ ЛИ ЕЩЁ ПРАВО НА РОКИРОВКУ?
+   // 1. Р•РЎРўР¬ Р›Р Р•Р©РЃ РџР РђР’Рћ РќРђ Р РћРљРР РћР’РљРЈ?
    
    if (white) {
       if (!whiteCanCastleKingSide) {
@@ -623,95 +701,82 @@ bool Board::canCastleKingSide(const std::array<std::array<char, 8>, 8>& board, b
          return false;
       }
    }
-   // =========================================
-   // 2. КОРОЛЬ ДОЛЖЕН СТОЯТЬ НА e1 / e8
+   // 2. РљРћР РћР›Р¬ Р”РћР›Р–Р•Рќ РЎРўРћРЇРўР¬ РќРђ e1 / e8
    //
    if (board[row][4] != king) { return false; }
-   // =========================================
-   // 3. ЛАДЬЯ ДОЛЖНА СТОЯТЬ НА h1 / h8
+   // 3. Р›РђР”Р¬РЇ Р”РћР›Р–РќРђ РЎРўРћРЇРўР¬ РќРђ h1 / h8
    if (board[row][7] != rook) { return false; }
-   // =========================================
-   // 4. МЕЖДУ КОРОЛЁМ И ЛАДЬЁЙ ДОЛЖНО БЫТЬ ПУСТО
-   // e1 -> король
-   // f1 -> должно быть пусто
-   // g1 -> должно быть пусто
-   // h1 -> ладья
-   // =========================================
+   // 4. РњР•Р–Р”РЈ РљРћР РћР›РЃРњ Р Р›РђР”Р¬РЃР™ Р”РћР›Р–РќРћ Р‘Р«РўР¬ РџРЈРЎРўРћ
+   // e1 -> РєРѕСЂРѕР»СЊ
+   // f1 -> РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РїСѓСЃС‚Рѕ
+   // g1 -> РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РїСѓСЃС‚Рѕ
+   // h1 -> Р»Р°РґСЊСЏ
 
    if (board[row][5] != '.' ||
       board[row][6] != '.')
    {
       return false;
    }
-   // =========================================
-   // 5. КОРОЛЬ НЕ МОЖЕТ РОКИРОВАТЬСЯ ИЗ-ПОД ШАХА
+   // 5. РљРћР РћР›Р¬ РќР• РњРћР–Р•Рў Р РћРљРР РћР’РђРўР¬РЎРЇ РР—-РџРћР” РЁРђРҐРђ
    /* 
-   !white означает :
+   !white РѕР·РЅР°С‡Р°РµС‚ :
    
-    если white == true,
-    проверяем атаки ЧЁРНЫХ;
+    РµСЃР»Рё white == true,
+    РїСЂРѕРІРµСЂСЏРµРј Р°С‚Р°РєРё Р§РЃР РќР«РҐ;
    
-    если white == false,
-    проверяем атаки БЕЛЫХ.
+    РµСЃР»Рё white == false,
+    РїСЂРѕРІРµСЂСЏРµРј Р°С‚Р°РєРё Р‘Р•Р›Р«РҐ.
    */
-   // =========================================
 
    if (isSquareAttacked(board, row, 4, !white)) { return false; }
-   // =========================================
-   // 6. КОРОЛЬ НЕ МОЖЕТ ПРОХОДИТЬ ЧЕРЕЗ БИТОЕ ПОЛЕ
-   // При O-O король проходит через f1/f8.
+   // 6. РљРћР РћР›Р¬ РќР• РњРћР–Р•Рў РџР РћРҐРћР”РРўР¬ Р§Р•Р Р•Р— Р‘РРўРћР• РџРћР›Р•
+   // РџСЂРё O-O РєРѕСЂРѕР»СЊ РїСЂРѕС…РѕРґРёС‚ С‡РµСЂРµР· f1/f8.
    if (isSquareAttacked(board, row, 5, !white)) { return false; }
 
-
-   // =========================================
-   // 7. КОРОЛЬ НЕ МОЖЕТ ПОПАСТЬ ПОД ШАХ
+   // 7. РљРћР РћР›Р¬ РќР• РњРћР–Р•Рў РџРћРџРђРЎРўР¬ РџРћР” РЁРђРҐ
    //
-   // Конечная клетка — g1/g8.
+   // РљРѕРЅРµС‡РЅР°СЏ РєР»РµС‚РєР° вЂ” g1/g8.
 
    if (isSquareAttacked(board, row, 6, !white)) { return false; }
 
-
-   // Все условия выполнены.
+   // Р’СЃРµ СѓСЃР»РѕРІРёСЏ РІС‹РїРѕР»РЅРµРЅС‹.
    return true;
 }
 
 bool Board::canCastleQueenSide(const std::array<std::array<char, 8>, 8>& board, bool white) const
 {
-   // У белых король находится на 7-й строке массива,
-   // у чёрных — на 0-й.
+   // РЈ Р±РµР»С‹С… РєРѕСЂРѕР»СЊ РЅР°С…РѕРґРёС‚СЃСЏ РЅР° 7-Р№ СЃС‚СЂРѕРєРµ РјР°СЃСЃРёРІР°,
+   // Сѓ С‡С‘СЂРЅС‹С… вЂ” РЅР° 0-Р№.
    int row = white ? 7 : 0;
 
-   // Символы короля и ладьи нужного цвета.
+   // РЎРёРјРІРѕР»С‹ РєРѕСЂРѕР»СЏ Рё Р»Р°РґСЊРё РЅСѓР¶РЅРѕРіРѕ С†РІРµС‚Р°.
    char king = white ? 'K' : 'k';
    char rook = white ? 'R' : 'r';
    // =========================================
-   // 1. ЕСТЬ ЛИ ЕЩЁ ПРАВО НА РОКИРОВКУ?
+   // 1. Р•РЎРўР¬ Р›Р Р•Р©РЃ РџР РђР’Рћ РќРђ Р РћРљРР РћР’РљРЈ?
 
    if (white) {
-      if (!whiteCanCastleKingSide) {
+      if (!whiteCanCastleQueenSide) {
          return false;
       }
    }
    else {
-      if (!blackCanCastleKingSide) {
+      if (!blackCanCastleQueenSide) {
          return false;
       }
    }
-   // =========================================
-   // 2. КОРОЛЬ ДОЛЖЕН СТОЯТЬ НА e1 / e8
+   // 2. РљРћР РћР›Р¬ Р”РћР›Р–Р•Рќ РЎРўРћРЇРўР¬ РќРђ e1 / e8
    //
    if (board[row][4] != king) { return false; }
    // =========================================
-   // 3. ЛАДЬЯ ДОЛЖНА СТОЯТЬ НА h1 / h8
+   // 3. Р›РђР”Р¬РЇ Р”РћР›Р–РќРђ РЎРўРћРЇРўР¬ РќРђ a1 / a8
    if (board[row][0] != rook) { return false; }
-   // =========================================
-   // 4. МЕЖДУ КОРОЛЁМ И ЛАДЬЁЙ ДОЛЖНО БЫТЬ ПУСТО
-   // e -> король
-   // c1 -> должно быть пусто
-   // d1 -> должно быть пусто
-   // b1 -> должно быть пусто
-   // a -> ладья
-   // =========================================
+   // 4. РњР•Р–Р”РЈ РљРћР РћР›РЃРњ Р Р›РђР”Р¬РЃР™ Р”РћР›Р–РќРћ Р‘Р«РўР¬ РџРЈРЎРўРћ
+   // e -> РєРѕСЂРѕР»СЊ
+   // c1 -> РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РїСѓСЃС‚Рѕ
+   // d1 -> РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РїСѓСЃС‚Рѕ
+   // b1 -> РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РїСѓСЃС‚Рѕ
+   // a -> Р»Р°РґСЊСЏ
 
    if (board[row][1] != '.' ||
       board[row][2] != '.' ||
@@ -719,34 +784,55 @@ bool Board::canCastleQueenSide(const std::array<std::array<char, 8>, 8>& board, 
    {
       return false;
    }
-   // =========================================
-   // 5. КОРОЛЬ НЕ МОЖЕТ РОКИРОВАТЬСЯ ИЗ-ПОД ШАХА
+   // 5. РљРћР РћР›Р¬ РќР• РњРћР–Р•Рў Р РћРљРР РћР’РђРўР¬РЎРЇ РР—-РџРћР” РЁРђРҐРђ
    /*
-   !white означает :
-
-    если white == true,
-    проверяем атаки ЧЁРНЫХ;
-
-    если white == false,
-    проверяем атаки БЕЛЫХ.
+   !white РѕР·РЅР°С‡Р°РµС‚ :
+    РµСЃР»Рё white == true,
+    РїСЂРѕРІРµСЂСЏРµРј Р°С‚Р°РєРё Р§РЃР РќР«РҐ;
+    РµСЃР»Рё white == false,
+    РїСЂРѕРІРµСЂСЏРµРј Р°С‚Р°РєРё Р‘Р•Р›Р«РҐ.
    */
-   // =========================================
 
    if (isSquareAttacked(board, row, 4, !white)) { return false; }
-   // =========================================
-   // 6. КОРОЛЬ НЕ МОЖЕТ ПРОХОДИТЬ ЧЕРЕЗ БИТОЕ ПОЛЕ
-   // При O-O-O король проходит через d1/d8.
+   // 6. РљРћР РћР›Р¬ РќР• РњРћР–Р•Рў РџР РћРҐРћР”РРўР¬ Р§Р•Р Р•Р— Р‘РРўРћР• РџРћР›Р•
+   // РџСЂРё O-O-O РєРѕСЂРѕР»СЊ РїСЂРѕС…РѕРґРёС‚ С‡РµСЂРµР· d1/d8.
    if (isSquareAttacked(board, row, 3, !white)) { return false; }
-   
-
-   // =========================================
-   // 7. КОРОЛЬ НЕ МОЖЕТ ПОПАСТЬ ПОД ШАХ
-   //
-   // Конечная клетка — a1/a8.
+   // 7. РљРћР РћР›Р¬ РќР• РњРћР–Р•Рў РџРћРџРђРЎРўР¬ РџРћР” РЁРђРҐ
+   // РљРѕРЅРµС‡РЅР°СЏ РєР»РµС‚РєР° вЂ” a1/a8.
 
    if (isSquareAttacked(board, row, 2, !white)) { return false; }
 
-
-   // Все условия выполнены.
+   // Р’СЃРµ СѓСЃР»РѕРІРёСЏ РІС‹РїРѕР»РЅРµРЅС‹.
    return true;
+}
+
+bool Board::isWaitingForPromotion() const
+{
+   return awaitingPromotion;
+}
+
+int Board::getPromotionRow() const
+{
+   return pendingPromotion.toRow;
+}
+
+int Board::getPromotionCol() const
+{
+   return pendingPromotion.toCol;
+}
+
+void Board::confirmPromotion(char piece)
+{
+   if (!awaitingPromotion) return;
+
+   // Р’С‹СЃС‚Р°РІР»СЏРµРј РІС‹Р±СЂР°РЅРЅСѓСЋ С„РёРіСѓСЂСѓ (РІ РІРµСЂС…РЅРµРј СЂРµРіРёСЃС‚СЂРµ вЂ” makeMove СЃР°Рј
+   // РїСЂРёРІРµРґС‘С‚ СЂРµРіРёСЃС‚СЂ РїРѕРґ С†РІРµС‚ С…РѕРґСЏС‰РµРіРѕ).
+   pendingPromotion.promotionPiece = std::toupper(static_cast<unsigned char>(piece));
+
+   // РџСЂРёРјРµРЅСЏРµРј С…РѕРґ вЂ” РІСЃСЏ Р»РѕРіРёРєР° РїСЂРµРІСЂР°С‰РµРЅРёСЏ СѓР¶Рµ РІ makeMove.
+   makeMove(pendingPromotion);
+
+   // РЎР±СЂР°СЃС‹РІР°РµРј СЃРѕСЃС‚РѕСЏРЅРёРµ РѕР¶РёРґР°РЅРёСЏ.
+   awaitingPromotion = false;
+   pendingPromotion = Move{};
 }

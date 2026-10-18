@@ -33,5 +33,10 @@ void drawFigures
 
 /*Подсветка клетки*/
 void drawHighlightRect(sf::RenderWindow& window, const Board& board, const int cellSize ,const int offSetX, const int offSetY);
+//
+std::array<sf::FloatRect, 4> getPromotionButtonsRect(int sqRow, int sqCol, float offSetX, float offSetY, float cellSize);
+void drawPromotionPopup(sf::RenderWindow& window, const Board& board, const std::vector<sf::Sprite>& sprites, float offSetX, float offSetY, float cellSize);
+bool handlePromotionClick(const sf::Vector2i& mousePos, Board& board, float offSetX, float offSetY, float cellSize);
+
 
 #endif // FUNCTIONS_H
