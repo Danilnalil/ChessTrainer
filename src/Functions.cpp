@@ -209,7 +209,10 @@ void drawGameOverPanel(sf::RenderWindow& window, const Board& board, const sf::F
    if (state == GS::Playing) return;
 
    // Затемнение фона
-   sf::RectangleShape dim({ { 1200.f, 800.f } });
+   // ВАЖНО: конструктор RectangleShape принимает sf::Vector2f (одинарные фигурные скобки).
+   // Двойные скобки ({ { ... } }) не компилируются в MSVC (ошибка C2665).
+   sf::RectangleShape dim(sf::Vector2f(1200.f, 800.f));
+   dim.setPosition(0.f, 0.f);
    dim.setFillColor(sf::Color(0, 0, 0, 140));
    window.draw(dim);
 
