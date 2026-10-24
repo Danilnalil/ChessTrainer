@@ -33,6 +33,8 @@ void Board::init() {
    blackKingCol = 4;
    // новая партия начинается с белых
    whiteToMove = true;
+   // состояние партии — снова играем
+   gameState = GameState::Playing;
    // сброс для рокировок
    whiteCanCastleKingSide = true;
    whiteCanCastleQueenSide = true;
@@ -54,7 +56,18 @@ void Board::handleClick(int row, int col) {
    if (row < 0 || row >= 8 || col < 0 || col >= 8) {
       return;
    }
-   
+
+   // Партия окончена (мат/пат) — клики по доске игнорируем,
+   // сброс только через плашку результата.
+   if (gameState != GameState::Playing) {
+      return;
+   }
+
+   // Пока открыт попап превращения — клики по доске игнорируем.
+   if (awaitingPromotion) {
+      return;
+   }
+
    if (!pieceSelected) 
    {
       // Попытка выбрать фигуру
@@ -65,6 +78,8 @@ void Board::handleClick(int row, int col) {
          bool flag = std::isupper(static_cast<unsigned char>(piece));
          if ( flag != whiteToMove) { return; }
          legalMoves = generateLegalMoves(row, col);
+         // Если у выбранной фигуры нет легальных ходов — не выделяем её вовсе
+         if (legalMoves.empty()) { return; }
          pieceSelected = true;
          selectedRow = row;
          selectedCol = col;
@@ -650,6 +665,83 @@ void Board::makeMove(const Move& move)
          blackKingCol = move.toCol;
       }
    }
+
+   // 5. Проверка мата/пата: после каждого хода обновляем состояние партии
+   updateGameState();
+}
+
+bool Board::hasAnyLegalMove(bool forWhite) const
+{
+   // Перебираем все клетки доски; как только находим хотя бы один
+   // легальный ход фигуры нужного цвета — возвращаем true.
+   for (int row = 0; row < 8; ++row) {
+      for (int col = 0; col < 8; ++col) {
+         char piece = board[row][col];
+         if (piece == '.') continue;
+         bool isWhitePiece = std::isupper(static_cast<unsigned char>(piece));
+         if (isWhitePiece != forWhite) continue;
+
+         auto pseudo = generatePseudoLegalMoves(row, col);
+         for (const Move& m : pseudo) {
+            if (isMoveLegal(m, forWhite)) {
+               return true;
+            }
+         }
+      }
+   }
+   return false;
+}
+
+bool Board::isInCheck(bool byWhite) const
+{
+   // Семантика аргумента: byWhite — цвет АТАКУЮЩИХ.
+   if (!byWhite) { // атакуют белые -> проверяем чёрного короля
+      return isSquareAttacked(board, blackKingRow, blackKingCol, true);
+   }
+   // атакуют чёрные -> проверяем белого короля
+   return isSquareAttacked(board, whiteKingRow, whiteKingCol, false);
+}
+
+void Board::updateGameState()
+{
+   // Ход сейчас за стороной whiteToMove. Определяем её положение:
+   //   есть легальные ходы          -> игра продолжается;
+   //   нет ходов + король под шахом -> мат (победа противоположной стороны);
+   //   нет ходов + шаху нет         -> пат (ничья).
+   const bool sideToMoveIsWhite = whiteToMove;
+
+   if (hasAnyLegalMove(sideToMoveIsWhite)) {
+      gameState = GameState::Playing;
+      return;
+   }
+
+   // Легальных ходов нет. Шах тому, кто должен ходить?
+   // Атакуют: противоположная сторона, т.е. !sideToMoveIsWhite.
+   const bool checked = isSquareAttacked(
+      board,
+      sideToMoveIsWhite ? whiteKingRow : blackKingRow,
+      sideToMoveIsWhite ? whiteKingCol : blackKingCol,
+      /*byWhite=*/!sideToMoveIsWhite);
+
+   if (checked) {
+      // Мат: выигрывает сторона, которая сделала последний ход
+      gameState = sideToMoveIsWhite ? GameState::BlackWins
+                                    : GameState::WhiteWins;
+   }
+   else {
+      // Пат: ничья
+      gameState = GameState::Draw;
+   }
+}
+
+Board::GameState Board::getGameState() const
+{
+   return gameState;
+}
+
+bool Board::isGameOver() const
+{
+   return gameState != GameState::Playing;
 }
 
 const std::array<std::array<char, 8>, 8>& Board::getBoard() const {

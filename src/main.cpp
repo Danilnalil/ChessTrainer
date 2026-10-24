@@ -26,6 +26,23 @@ int main() {
 
    std::vector<sf::Sprite> sprites = splitTextureIntoSprite(texture, 6, 2, cellSizePixel, true);
 
+   //------------------------------------------- Font (дл€ плашки результата)
+
+   sf::Font font;
+   // »щем шрифт с кириллицей: сначала локальный assets/, затем системный DejaVu.
+   const char* fontCandidates[] = {
+      "assets/DejaVuSans.ttf",
+      "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+      "C:/Windows/Fonts/arial.ttf"
+   };
+   bool fontLoaded = false;
+   for (const char* path : fontCandidates) {
+      if (font.openFromFile(path)) { fontLoaded = true; break; }
+   }
+   if (!fontLoaded) {
+      std::cerr << "Warning: font not found, game-over panel text may not render\n";
+   }
+
    //------------------------------------------- Board
 
    Board chessBoard;
@@ -49,8 +66,13 @@ int main() {
                eventMouse && eventMouse->button == sf::Mouse::Button::Left()) 
          {
             sf::Vector2i mousePos = sf::Mouse::getPosition(window);  // получаю координаты мыши при нажатии (int)
+            // ѕлашка результата партии Ч имеет приоритет над всем остальным.
+            if (handleGameOverClick(mousePos, chessBoard))
+            {
+               // клик поглощЄн плашкой (кнопка Ђ—бросї уже вызвала init())
+            }
             // —начала Ч попап превращени€. ≈сли он открыт, доска игнорируетс€.
-            if (handlePromotionClick(mousePos, chessBoard,
+            else if (handlePromotionClick(mousePos, chessBoard,
                offSetX, offSetY, cellSizePixel))
             {
                // ничего больше не делаем
@@ -79,6 +101,7 @@ int main() {
       drawFigures(window, chessBoard.getBoard(), sprites, offSetX, offSetY, cellSizePixel);
       drawHighlightRect(window, chessBoard, cellSizePixel, offSetX, offSetY);
       drawPromotionPopup(window, chessBoard, sprites, offSetX, offSetY, cellSizePixel);
+      drawGameOverPanel(window, chessBoard, font);
       window.display();
    }
 

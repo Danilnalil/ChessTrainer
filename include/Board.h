@@ -50,6 +50,22 @@ public:
       Promotion         // превращение пешки (пока не реализовано)
    };
 
+/* ------------------------------------------------------------------------
+ *  GameState Ч состо€ние партии.
+ *  ќбновл€етс€ после каждого хода в makeMove():
+ *    Playing    Ч игра идЄт;
+ *    WhiteWins  Ч мат, победа белых (ход чЄрным, их король под шахом, ходов нет);
+ *    BlackWins  Ч мат, победа чЄрных;
+ *    Draw       Ч пат (ход есть, но легальных ходов нет, король Ќ≈ под шахом).
+ * --------------------------------------------------------------------- */
+   enum class GameState
+   {
+      Playing,
+      WhiteWins,
+      BlackWins,
+      Draw
+   };
+
  /* ------------------------------------------------------------------------
  *  Move Ч структура хода.
  *  ¬Ќ»ћјЌ»≈: пор€док полей Ч —Ќј„јЋј col, ѕќ“ќћ row.
@@ -88,6 +104,10 @@ public:
    bool isWaitingForPromotion() const; 
 
    void confirmPromotion(char piece);
+   // —осто€ние партии после последнего хода (Playing / WhiteWins / BlackWins / Draw)
+   GameState getGameState() const;
+   // true Ч парти€ окончена (мат или пат): UI показывает плашку с результатом
+   bool isGameOver() const;
    // √еттеры 
    const std::array<std::array<char, 8>, 8>& getBoard() const;
    bool isPieceSelected() const;
@@ -116,6 +136,7 @@ private:
 
    std::vector<Move> legalMoves;
    bool whiteToMove = true; // true - ход€т белые, иначе чЄрные
+   GameState gameState = GameState::Playing; // текущее состо€ние партии (мат/пат обновл€ютс€ после каждого хода)
 
    short whiteKingRow{ 7 }; // позиции королей
    short whiteKingCol{ 4 };
@@ -148,6 +169,17 @@ private:
    // white == true  -> провер€ем белых.
    // white == false -> провер€ем чЄрных.
    bool canCastleQueenSide(const std::array<std::array<char, 8>, 8>& board, bool white) const;
+
+   // ≈сть ли у стороны нужного цвета хот€ бы один легальный ход.
+   // »спользуетс€ дл€ детекции мата/пата после каждого хода.
+   bool hasAnyLegalMove(bool forWhite) const;
+
+   // јтакован ли король стороны нужного цвета на текущей доске (шах).
+   bool isInCheck(bool byWhite) const;
+
+   // ќпредел€ет состо€ние партии дл€ стороны, которой сейчас предстоит ход:
+   // мат (победа противоположной стороны), пат (ничь€) или игра продолжаетс€.
+   void updateGameState();
    
 
 };
