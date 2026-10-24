@@ -450,26 +450,23 @@ bool Board::isMoveLegal(const Move& move, bool isWhite) const
       }
    }
 
-   // 4. Теперь беру координаты короля нужного цвета
-   int kingRow, kingCol;
-   if (isWhite) {
-      kingRow = tempWhiteKingRow;
-      kingCol = tempWhiteKingCol;
-   }
-   else {
-      kingRow = tempBlackKingRow;
-      kingCol = tempBlackKingCol;
-   }
-
-   // 5. Проверяю атаку на этой клетке
-   bool attacked = isSquareAttacked(tempBoard, kingRow, kingCol, !isWhite);
+   // 5. Проверяю атаку на этой клетке.
+   // ВАЖНО: аргумент byWhite — цвет АТАКУЮЩЕГО короля, т.е. проверяем,
+   // атакован ли король СТОРОНЫ, которая сделала ход (!isWhite),
+   // фигурами противоположного цвета (isWhite). Прежняя формулировка
+   // (атака на короля ходящей стороны) инвертировала смысл и делала
+   // невозможными все ходы в начальной позиции.
+   const int atkKingRow = isWhite ? tempBlackKingRow : tempWhiteKingRow;
+   const int atkKingCol = isWhite ? tempBlackKingCol : tempWhiteKingCol;
+   bool attacked = isSquareAttacked(tempBoard, atkKingRow, atkKingCol, isWhite);
    return !attacked;
 }
 
 bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, int row, int col, bool byWhite) const
 {
-   // Вспомогательная лямбда для проверки, что клетка содержит фигуру нужного цвета
-   auto isEnemy = [&](int r, int c) -> bool {
+   // Вспомогательная лямбда: клетка содержит фигуру АТАКУЮЩЕГО цвета
+   // (byWhite == true — ищем белую фигуру, иначе — чёрную).
+   auto attackerOfColor = [&](int r, int c) -> bool {
       if (r < 0 || r >= 8 || c < 0 || c >= 8) return false;
       char p = board[r][c];
       if (p == '.') return false;
@@ -493,8 +490,11 @@ bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, in
             c += dirs[d][1];
             continue;
          }
-         // Нашли фигуру
-         if (isEnemy(r, c)) {
+         // Нашли фигуру — она блокирует луч независимо от цвета.
+         // ВАЖНО: проверка идёт по верхнему регистру БЕЗ учёта цвета,
+         // иначе король сможет «войти под бой» дальнобойной фигуры
+         // противоположного цвета (например, Kxd3 при ферзе d8).
+         {
             char upper = std::toupper(static_cast<unsigned char>(p));
             // Для вертикалей/горизонталей (d < 4) – ладья или ферзь
             if (d < 4 && (upper == 'R' || upper == 'Q')) return true;
@@ -513,7 +513,7 @@ bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, in
    for (auto& off : knightOffsets) {
       int r = row + off[0];
       int c = col + off[1];
-      if (isEnemy(r, c)) {
+      if (attackerOfColor(r, c)) {
          char p = board[r][c];
          char upper = std::toupper(static_cast<unsigned char>(p));
          if (upper == 'N') return true;
@@ -548,7 +548,7 @@ bool Board::isSquareAttacked(const std::array<std::array<char, 8>, 8>& board, in
    for (auto& off : kingOffsets) {
       int r = row + off[0];
       int c = col + off[1];
-      if (isEnemy(r, c)) {
+      if (attackerOfColor(r, c)) {
          char p = board[r][c];
          char upper = std::toupper(static_cast<unsigned char>(p));
          if (upper == 'K') return true;
