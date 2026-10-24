@@ -38,5 +38,13 @@ std::array<sf::FloatRect, 4> getPromotionButtonsRect(int sqRow, int sqCol, float
 void drawPromotionPopup(sf::RenderWindow& window, const Board& board, const std::vector<sf::Sprite>& sprites, float offSetX, float offSetY, float cellSize);
 bool handlePromotionClick(const sf::Vector2i& mousePos, Board& board, float offSetX, float offSetY, float cellSize);
 
+/*Плашка результата партии (мат/пат) с кнопкой «Сброс»*/
+// Возвращает прямоугольник кнопки сброса на плашке.
+sf::FloatRect getGameOverResetButtonRect();
+// Рисует плашку поверх доски, если партия окончена.
+void drawGameOverPanel(sf::RenderWindow& window, const Board& board, const sf::Font& font);
+// true — клик поглощён плашкой (и выполняет сброс, если попал по кнопке).
+bool handleGameOverClick(const sf::Vector2i& mousePos, Board& board);
+
 
 #endif // FUNCTIONS_H

@@ -185,3 +185,97 @@ bool handlePromotionClick(const sf::Vector2i& mousePos, Board& board, float offS
    // Клик мимо попапа — поглощаем, чтобы не выбралась фигура на доске.
    return true;
 }
+
+// ===================== Плашка результата партии (мат / пат) =====================
+
+// Геометрия плашки: по центру окна 1200x800.
+static const sf::FloatRect gGameOverPanelRect({ 350.f, 290.f }, { 500.f, 220.f });
+
+sf::FloatRect getGameOverResetButtonRect()
+{
+   // Кнопка «Сброс» — внизу плашки, по центру.
+   const float btnW = 220.f;
+   const float btnH = 54.f;
+   const sf::Vector2f p = gGameOverPanelRect.position;
+   const sf::Vector2f s = gGameOverPanelRect.size;
+   return sf::FloatRect({ p.x + (s.x - btnW) / 2.f,
+                          p.y + s.y - btnH - 20.f }, { btnW, btnH });
+}
+
+void drawGameOverPanel(sf::RenderWindow& window, const Board& board, const sf::Font& font)
+{
+   using GS = Board::GameState;
+   const GS state = board.getGameState();
+   if (state == GS::Playing) return;
+
+   // Затемнение фона
+   sf::RectangleShape dim({ { 1200.f, 800.f } });
+   dim.setFillColor(sf::Color(0, 0, 0, 140));
+   window.draw(dim);
+
+   // Сама плашка
+   sf::RectangleShape panel(gGameOverPanelRect.size);
+   panel.setPosition(gGameOverPanelRect.position);
+   panel.setFillColor(sf::Color(35, 35, 40, 245));
+   panel.setOutlineColor(sf::Color(220, 180, 90));
+   panel.setOutlineThickness(3.f);
+   window.draw(panel);
+
+   // Текст результата
+   const wchar_t* title = L"";
+   switch (state)
+   {
+      case GS::WhiteWins: title = L"\x041C\x0430\x0442! \x041F\x043E\x0431\x0435\x0434\x0430 \x0431\x0435\x043B\x044B\x0445"; break; // "Мат! Победа белых"
+      case GS::BlackWins: title = L"\x041C\x0430\x0442! \x041F\x043E\x0431\x0435\x0434\x0430 \x0447\x0451\x0440\x043D\x044B\x0445"; break; // "Мат! Победа чёрных"
+      case GS::Draw:      title = L"\x041F\x0430\x0442! \x041D\x0438\x0447\x044C\x044F";                                  break; // "Пат! Ничья"
+      default: return;
+   }
+
+   sf::Text text(font);
+   text.setString(title);
+   text.setCharacterSize(34);
+   text.setFillColor(sf::Color::White);
+   text.setPosition({ gGameOverPanelRect.position.x,
+                      gGameOverPanelRect.position.y + 30.f });
+   // Центрируем заголовок по горизонтали плашки
+   auto bounds = text.getLocalBounds();
+   text.setOrigin({ bounds.position.x + bounds.size.x / 2.f, 0.f });
+   text.setPosition({ gGameOverPanelRect.position.x + gGameOverPanelRect.size.x / 2.f,
+                      gGameOverPanelRect.position.y + 30.f });
+   window.draw(text);
+
+   // Кнопка «Сброс»
+   auto btnRect = getGameOverResetButtonRect();
+   sf::RectangleShape button(btnRect.size);
+   button.setPosition(btnRect.position);
+   button.setFillColor(sf::Color(70, 130, 70));
+   button.setOutlineColor(sf::Color::White);
+   button.setOutlineThickness(2.f);
+   window.draw(button);
+
+   sf::Text btnText(font);
+   btnText.setString(L"\x0421\x0431\x0440\x043E\x0441"); // "Сброс"
+   btnText.setCharacterSize(26);
+   btnText.setFillColor(sf::Color::White);
+   auto b = btnText.getLocalBounds();
+   btnText.setOrigin({ b.position.x + b.size.x / 2.f, b.position.y + b.size.y / 2.f });
+   btnText.setPosition({ btnRect.position.x + btnRect.size.x / 2.f,
+                         btnRect.position.y + btnRect.size.y / 2.f });
+   window.draw(btnText);
+}
+
+bool handleGameOverClick(const sf::Vector2i& mousePos, Board& board)
+{
+   if (!board.isGameOver()) return false;
+
+   // Клики по плашке всегда поглощаются (доска под ней заблокирована).
+   if (gGameOverPanelRect.contains(sf::Vector2f(mousePos)))
+   {
+      if (getGameOverResetButtonRect().contains(sf::Vector2f(mousePos)))
+      {
+         board.init(); // полный сброс партии
+      }
+      return true;
+   }
+   return false;
+}
